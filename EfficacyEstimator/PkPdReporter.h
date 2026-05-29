@@ -9,11 +9,8 @@
 #define    PKPDREPORTER_H
 
 #include "Reporters/Reporter.h"
-#include <sstream>
 #include <fstream>
-
 #include "Utils/Cli.h"
-#include "Utils/TypeDef.h"
 
 namespace utils {
 class Cli;
@@ -21,18 +18,15 @@ class Cli;
 
 class PkPdReporter : public Reporter {
 
- DoubleVector yesterday_density;
-
  public:
-    std::stringstream ss;
-    const std::string group_sep = "-1111\t";
-    const std::string sep = ",";
+    std::string prefix;
+    std::ofstream parasitaemia_file;
 
     PkPdReporter(utils::Cli::DxGAppInput* appInput=nullptr);
 
   virtual ~PkPdReporter();
 
-  void initialize(int job_number, const std::string& path) override{}
+  void initialize(int job_number, const std::string& path) override;
 
   void before_run() override;
 
@@ -46,8 +40,6 @@ class PkPdReporter : public Reporter {
 
  private:
     utils::Cli::DxGAppInput* appInput{nullptr};
-    std::ofstream outputFStream;
-
 };
 
 #endif    /* PKPDREPORTER_H */

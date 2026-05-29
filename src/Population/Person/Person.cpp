@@ -390,16 +390,16 @@ void Person::determine_symptomatic_recrudescence(
   // there are 2 methods to calculate the probability to develop symptom
   // One from the papaer, another from the immune system in the simulation.
   //
-  // const auto pfpr = Model::get_mdc()->blood_slide_prevalence_by_location()[location_] * 100;
-  //
-  // const auto is_young_children = get_age() <= 6;
-  //
-  // const auto probability_develop_symptom =
-  //     calculate_symptomatic_recrudescence_probability(pfpr, is_young_children);
+  const auto pfpr = Model::get_mdc()->blood_slide_prevalence_by_location()[location_] * 100;
 
-  const auto probability_develop_symptom = get_probability_progress_to_clinical();
+  const auto is_young_children = get_age() <= 6;
 
-  // becase the current model does not have within host dynamics, so we
+  const auto probability_develop_symptom =
+      calculate_symptomatic_recrudescence_probability(pfpr, is_young_children);
+
+  // const auto probability_develop_symptom = get_probability_progress_to_clinical();
+
+  // because the current model does not have within host dynamics, so we
   // assume that the threshold for the parasite density to re-appear in
   // blood is 100 per uL
   const bool is_higher_than_recrudescence_threshold =
