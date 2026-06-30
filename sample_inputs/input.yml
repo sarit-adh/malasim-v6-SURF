@@ -332,10 +332,10 @@ immune_system_parameters:
   immune_inflation_rate: 0.01 # Age-dependent faster acquisition of immunity from age 1 to age 10 (per year)
   min_clinical_probability: 0.01 # Minimum probability of experiencing symptoms from a new infection
   max_clinical_probability: 0.99 # Maximum probability of experiencing symptoms from a new infection
-  immune_effect_on_progression_to_clinical: 5.4 # Slope of the sigmoidal probability vs. immunity function (z)
+  immune_effect_on_progression_to_clinical: 3.0 # Slope of the sigmoidal probability vs. immunity function (z)
   age_mature_immunity: 10 # Age at which immune function is mature
-  factor_effect_age_mature_immunity: 0.3 # Adjusts the inflection point in the curve (kappa)
-  midpoint: 0.4 # Midpoint for the immunity curve
+  factor_effect_age_mature_immunity: 0.1 # Adjusts the inflection point in the curve (kappa)
+  midpoint: 0.2 # Midpoint for the immunity curve
 
 # ---------------------------------------------------------------
 # 10. Mutation and Genotype Parameters
@@ -979,7 +979,7 @@ epidemiological_parameters:
   allow_new_coinfection_to_cause_symptoms:
     enable: true
     # Probability that a new co-infection causes symptoms in an already infected host
-    probability: 1.0
+    probability: 0.5
 
   # Window size for observing treatment failure rates
   tf_window_size: 60
@@ -1041,7 +1041,7 @@ epidemiological_parameters:
     enable: true
     type: power
     power:
-      base: 1.0
+      base: 0.8
       exponent_source: index
     ages: [0, 5, 10, 15, 20, 30, 40]
 
