@@ -44,6 +44,7 @@ public:
     int population_size{ 10000 };
     bool is_print_immunity_level{ false };
     bool is_old_format{ false };
+    bool is_recurrence_test{ false };
   };
 
 
@@ -68,10 +69,11 @@ public:
 
     for (int i = 1; i < argc; ++i) {
       std::string arg = argv[i];
-      if (arg == "--DxG" || arg == "DxG=1" || arg == "DxG=true") {
+      if (arg == "--DxG" || arg == "DxG=1" || arg == "DxG=true"
+          || arg == "--recurrence-test") {
         isDxG = true;
         break;
-      }
+          }
     }
 
     spdlog::info("Parsing command line arguments");
@@ -80,6 +82,10 @@ public:
       if (isDxG) {
         create_dxg_cli_options(app_, dxg_input_);
         app_.parse(argc, argv);
+
+        // Sync so Model::initialize() finds the right file
+        cli_input_.input_path = dxg_input_.input_file;
+
       } else {
         create_cli_options(app_, cli_input_);
         app_.parse(argc, argv);
@@ -176,8 +182,9 @@ public:
 
       app.add_flag("--pil", input.is_print_immunity_level, "Print immunity level");
       app.add_flag("--old_format", input.is_old_format, "Print output in old format");
+      app.add_flag("--recurrence-test", input.is_recurrence_test,
+                 "Run recurrence test mode (TMS-style per-person CSV with recrudescence tracking)");
   }
-
 
   static bool validate_config(MaSimAppInput &input) {
     std::ifstream f_input(input.input_path.c_str());

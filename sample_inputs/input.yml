@@ -245,6 +245,82 @@ parasite_parameters:
 # ---------------------------------------------------------------
 # 9. Immune System Parameters
 # ---------------------------------------------------------------
+# This is candidates for immunity parameters,
+# if this section is present in configuration,
+# the simulation will read this config and override immune system parameters with the selected candidate.
+# The mapping is:
+#  1. p_ci_symp: probability of clinical symptoms given infection,
+#  The value to override is probability in
+#    allow_new_coinfection_to_cause_symptoms:
+#      enable: true
+#      # Probability that a new co-infection causes symptoms in an already infected host
+#      probability: 1.0
+#  2. z,kappa,midpoint:
+#  The value to override is immune_effect_on_progression_to_clinical,
+#  factor_effect_age_mature_immunity and midpoint in
+#    immune_system_parameters:
+#      ...
+#      immune_effect_on_progression_to_clinical: 5.4 # Slope of the sigmoidal probability vs. immunity function (z)
+#      ...
+#      factor_effect_age_mature_immunity: 0.3 # Adjusts the inflection point in the curve (kappa)
+#      midpoint: 0.4 # Midpoint for the immunity curve
+#  3. p_seek_base: probability of seeking treatment when symptomatic
+#  The value to override is base in
+#    epidemiological_parameters:
+#      age_based_probability_of_seeking_treatment:
+#        enable: true
+#        type: power
+#        power:
+#          base: 1.0
+#          exponent_source: index
+#        ages: [0, 5, 10, 15, 20, 30, 40]
+# If this section is not present, the simulation will use the default immune system parameters in immune_system_parameters section.
+immune_system_paprameter_candidates:
+  used_in_simulation: 0
+  candidates:
+    0: #5 in Fig 12 (highest p_seek_base)
+      p_ci_symp: 0.5
+      z: 3.0
+      kappa: 0.1
+      midpoint: 0.2
+      p_seek_base: 0.8
+    1: #1 in Fig 9 (top-1)
+      p_ci_symp: 0.6
+      z: 3.0
+      kappa: 0.1
+      midpoint: 0.15
+      p_seek_base: 0.6
+    2: #1 in Fig 10 (top-1)
+      p_ci_symp: 0.7
+      z: 1.0
+      kappa: 1.0
+      midpoint: 0.04
+      p_seek_base: 0.6
+    3: #1 in Fig 11 (top-1)
+      p_ci_symp: 0.6
+      z: 3.0
+      kappa: 0.1
+      midpoint: 0.15
+      p_seek_base: 0.6
+    4: #5 in Fig 9 (highest p_ci_symp)
+      p_ci_symp: 1.0
+      z: 1.5
+      kappa: 0.5
+      midpoint: 0.1
+      p_seek_base: 0.65
+    5: #2 in Fig 10 (highest p_seek_base)
+      p_ci_symp: 0.5
+      z: 1.5
+      kappa: 0.5
+      midpoint: 0.1
+      p_seek_base: 0.75
+    6: #9 in Fig 9/10 (highest incidence)
+      p_ci_symp: 0.5
+      z: 3.5
+      kappa: 7.5
+      midpoint: 0.2
+      p_seek_base: 0.6
+
 immune_system_parameters:
   # Parameters governing the immune response
   b1: 0.00125 # Rate at which antimalarial immune function increases when a host is parasitemic
@@ -256,10 +332,10 @@ immune_system_parameters:
   immune_inflation_rate: 0.01 # Age-dependent faster acquisition of immunity from age 1 to age 10 (per year)
   min_clinical_probability: 0.01 # Minimum probability of experiencing symptoms from a new infection
   max_clinical_probability: 0.99 # Maximum probability of experiencing symptoms from a new infection
-  immune_effect_on_progression_to_clinical: 5.4 # Slope of the sigmoidal probability vs. immunity function (z)
+  immune_effect_on_progression_to_clinical: 3.0 # Slope of the sigmoidal probability vs. immunity function (z)
   age_mature_immunity: 10 # Age at which immune function is mature
-  factor_effect_age_mature_immunity: 0.3 # Adjusts the inflection point in the curve (kappa)
-  midpoint: 0.4 # Midpoint for the immunity curve
+  factor_effect_age_mature_immunity: 0.1 # Adjusts the inflection point in the curve (kappa)
+  midpoint: 0.2 # Midpoint for the immunity curve
 
 # ---------------------------------------------------------------
 # 10. Mutation and Genotype Parameters
@@ -900,7 +976,10 @@ epidemiological_parameters:
   update_frequency: 7
 
   # Allows new co-infections to cause symptoms in infected but asymptomatic hosts
-  allow_new_coinfection_to_cause_symptoms: true
+  allow_new_coinfection_to_cause_symptoms:
+    enable: true
+    # Probability that a new co-infection causes symptoms in an already infected host
+    probability: 0.5
 
   # Window size for observing treatment failure rates
   tf_window_size: 60
@@ -962,7 +1041,7 @@ epidemiological_parameters:
     enable: true
     type: power
     power:
-      base: 1.0
+      base: 0.8
       exponent_source: index
     ages: [0, 5, 10, 15, 20, 30, 40]
 
