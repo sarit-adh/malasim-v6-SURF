@@ -31,7 +31,7 @@ class IndividualsFileReporter : public Reporter {
 
   void begin_time_step() override;
 
-  virtual void after_time_step();
+  void after_time_step() override;
 
  public:
   void monthly_report() override;

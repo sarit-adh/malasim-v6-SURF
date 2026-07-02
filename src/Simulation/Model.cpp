@@ -184,6 +184,8 @@ void Model::end_time_step() {
 
   // check to switch strategy
   treatment_strategy_->update_end_of_time_step();
+
+  report_after_time_step();
 }
 
 void Model::daily_update() {
@@ -239,6 +241,10 @@ void Model::report_begin_of_time_step() {
   for (auto &reporter : reporters_) { reporter->begin_time_step(); }
 }
 
+void Model::report_after_time_step() {
+  for (auto &reporter : reporters_) { reporter->after_time_step(); }
+}
+
 void Model::add_reporter(std::unique_ptr<Reporter> reporter) {
   reporter->set_model(this);
   reporters_.push_back(std::move(reporter));
@@ -281,4 +287,3 @@ void Model::build_initial_treatment_coverage() {
 }
 
 std::vector<std::unique_ptr<Reporter>> &Model::get_reporters() { return reporters_; }
-

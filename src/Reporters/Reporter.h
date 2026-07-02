@@ -86,6 +86,8 @@ public:
 
   virtual void begin_time_step() = 0;
 
+  virtual void after_time_step() {}
+
   virtual void monthly_report() = 0;
 
   static std::unique_ptr<Reporter> MakeReport(ReportType report_type);
