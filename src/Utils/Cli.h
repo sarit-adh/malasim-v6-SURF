@@ -57,6 +57,12 @@ public:
     return instance;
   }
 
+  static MaSimAppInput parse_args(int argc, char** argv) {
+    auto& instance = get_instance();
+    instance.parse(argc, argv);
+    return instance.cli_input_;
+  }
+
   Cli(Cli &&) = delete;
   Cli &operator=(Cli &&) = delete;
   // Delete copy constructor and assignment operator
