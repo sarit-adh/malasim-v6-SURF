@@ -73,6 +73,10 @@ public:
 
   // Parse function
   void parse(int argc, char** argv) {
+    // Reset state so repeated parse calls (e.g., in tests) start from defaults.
+    cli_input_ = MaSimAppInput{};
+    dxg_input_ = DxGAppInput{};
+
     bool isDxG = false;
 
     for (int i = 1; i < argc; ++i) {
@@ -86,17 +90,20 @@ public:
 
     spdlog::info("Parsing command line arguments");
 
+    // Build a fresh CLI app on each parse to avoid duplicate option registration.
+    CLI::App app{"Individual-based simulation for malaria"};
+
     try {
       if (isDxG) {
-        create_dxg_cli_options(app_, dxg_input_);
-        app_.parse(argc, argv);
+        create_dxg_cli_options(app, dxg_input_);
+        app.parse(argc, argv);
 
         // Sync so Model::initialize() finds the right file
         cli_input_.input_path = dxg_input_.input_file;
 
       } else {
-        create_cli_options(app_, cli_input_);
-        app_.parse(argc, argv);
+        create_cli_options(app, cli_input_);
+        app.parse(argc, argv);
         validate_config(cli_input_);
       }
     } catch (const CLI::ParseError &e) {
@@ -144,17 +151,17 @@ public:
         "-j,--job", input.job_number,
         "Sets the study to associate with the configuration (or database id). Default: 0");
 
-    app.add_option("-d,--dump", input.dump_movement_matrix,
-                   "Dump the movement matrix as calculated.");
+    app.add_flag("-d,--dump", input.dump_movement_matrix,
+                 "Dump the movement matrix as calculated.");
 
     app.add_option("-l,--list", input.list_reporters, "List the possible reporters.");
 
-    app.add_option("--im", input.record_individual_movement, "Record individual movement data.");
+    app.add_flag("--im", input.record_individual_movement, "Record individual movement data.");
 
-    app.add_option("--mc", input.record_cell_movement, "Record the movement between cells.");
+    app.add_flag("--mc", input.record_cell_movement, "Record the movement between cells.");
 
-    app.add_option("--md", input.record_district_movement,
-                   "Record the movement between districts.");
+    app.add_flag("--md", input.record_district_movement,
+                 "Record the movement between districts.");
 
     app.add_option("--replicate", input.replicate, "Replicate number. Default: 1");
 
@@ -241,7 +248,6 @@ private:
   // Private constructor for Singleton
   Cli() = default;
   ~Cli() = default;
-  CLI::App app_{"Individual-based simulation for malaria"};
   MaSimAppInput cli_input_;
   DxGAppInput dxg_input_;
 };
