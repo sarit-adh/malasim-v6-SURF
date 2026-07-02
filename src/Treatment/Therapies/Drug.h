@@ -1,7 +1,8 @@
 #ifndef DRUG_H
 #define    DRUG_H
 
-#include "Population/DrugsInBlood.h"
+class DrugType;
+class DrugsInBlood;
 
 class Drug {
     // OBJECTPOOL(Drug)

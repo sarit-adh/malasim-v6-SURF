@@ -4,9 +4,9 @@
 #include <map>
 #include <memory>
 
-class Person;
+#include "Treatment/Therapies/Drug.h"
 
-class Drug;
+class Person;
 
 class Event;
 
