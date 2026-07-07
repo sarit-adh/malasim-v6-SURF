@@ -6,6 +6,7 @@
 #include <string>
 
 class Model;
+class Genotype;
 
 // Wrapper for TSV file constants
 namespace Tsv {
@@ -89,6 +90,8 @@ public:
   virtual void after_time_step() {}
 
   virtual void monthly_report() = 0;
+
+  virtual void on_genotype_added(const Genotype& /*genotype*/) {}
 
   static std::unique_ptr<Reporter> MakeReport(ReportType report_type);
 

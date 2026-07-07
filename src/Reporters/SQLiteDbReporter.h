@@ -41,6 +41,7 @@ private:
     );
   void populate_db_schema();
   void populate_genotype_table();
+  void insert_genotype(const Genotype& genotype);
   void populate_admin_level_table();
   void populate_location_admin_map_table();
 
@@ -93,9 +94,8 @@ public:
   void before_run() override {}
   void begin_time_step() override {}
   void monthly_report() override;
-  void after_run() override {
-    populate_genotype_table();
-  }
+  void after_run() override {}
+  void on_genotype_added(const Genotype& genotype) override;
 
   // Set batch size for database operations
   void set_batch_size(int size) { batch_size = size > 0 ? size : DEFAULT_BATCH_SIZE; }
