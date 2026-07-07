@@ -61,6 +61,15 @@ bool Config::load(const std::string &filename) {
       spdlog::info("Found immune_system_paprameter_candidates section — parsing candidates");
       immune_system_parameter_candidates_ =
           config["immune_system_paprameter_candidates"].as<ImmuneSystemParameterCandidates>();
+
+      if (immune_system_parameter_candidates_.get_random_selection()) {
+        // Candidate IDs are currently defined as 0..6 and should be sampled uniformly.
+        const int random_candidate_idx = static_cast<int>(Model::get_random()->random_uniform(7));
+        immune_system_parameter_candidates_.set_used_in_simulation(random_candidate_idx);
+        spdlog::info("immune_system_paprameter_candidates: random_selection=true, sampled used_in_simulation={}",
+                     random_candidate_idx);
+      }
+
       has_immune_system_parameter_candidates_ = true;
       immune_system_parameter_candidates_.log_all();
 

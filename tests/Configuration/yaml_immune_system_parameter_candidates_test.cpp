@@ -4,9 +4,10 @@
 
 class ImmuneSystemParameterCandidatesTest : public ::testing::Test {
 protected:
-  YAML::Node make_candidates_node(int used_in_simulation = 0) {
+  YAML::Node make_candidates_node(int used_in_simulation = 0, bool random_selection = false) {
     YAML::Node node;
     node["used_in_simulation"] = used_in_simulation;
+    node["random_selection"] = random_selection;
     YAML::Node cmap;
     {
       YAML::Node c;
@@ -47,6 +48,7 @@ TEST_F(ImmuneSystemParameterCandidatesTest, DecodesValidCandidates) {
   EXPECT_NO_THROW(YAML::convert<ImmuneSystemParameterCandidates>::decode(node, result));
 
   EXPECT_EQ(result.get_used_in_simulation(), 1);
+  EXPECT_FALSE(result.get_random_selection());
   EXPECT_EQ(result.get_candidates().size(), 3u);
 
   const auto &c0 = result.get_candidates().at(0);
@@ -100,11 +102,37 @@ TEST_F(ImmuneSystemParameterCandidatesTest, EncodeDecodeRoundtrip) {
   EXPECT_NO_THROW(YAML::convert<ImmuneSystemParameterCandidates>::decode(encoded, decoded));
 
   EXPECT_EQ(decoded.get_used_in_simulation(), 0);
+  EXPECT_FALSE(decoded.get_random_selection());
   EXPECT_EQ(decoded.get_candidates().size(), original.get_candidates().size());
   EXPECT_DOUBLE_EQ(decoded.get_candidates().at(0).p_ci_symp,
                    original.get_candidates().at(0).p_ci_symp);
   EXPECT_DOUBLE_EQ(decoded.get_candidates().at(4).p_seek_base,
                    original.get_candidates().at(4).p_seek_base);
+}
+
+// random_selection is parsed and preserved by encode/decode
+TEST_F(ImmuneSystemParameterCandidatesTest, RandomSelectionRoundtrip) {
+  auto node = make_candidates_node(0, true);
+  ImmuneSystemParameterCandidates original;
+  YAML::convert<ImmuneSystemParameterCandidates>::decode(node, original);
+
+  EXPECT_TRUE(original.get_random_selection());
+
+  YAML::Node encoded = YAML::convert<ImmuneSystemParameterCandidates>::encode(original);
+
+  ImmuneSystemParameterCandidates decoded;
+  EXPECT_NO_THROW(YAML::convert<ImmuneSystemParameterCandidates>::decode(encoded, decoded));
+  EXPECT_TRUE(decoded.get_random_selection());
+}
+
+// random_selection defaults to false when omitted
+TEST_F(ImmuneSystemParameterCandidatesTest, RandomSelectionDefaultsToFalseWhenMissing) {
+  auto node = make_candidates_node(0);
+  node.remove("random_selection");
+
+  ImmuneSystemParameterCandidates decoded;
+  EXPECT_NO_THROW(YAML::convert<ImmuneSystemParameterCandidates>::decode(node, decoded));
+  EXPECT_FALSE(decoded.get_random_selection());
 }
 
 // Missing 'used_in_simulation' throws

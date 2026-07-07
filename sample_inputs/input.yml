@@ -277,6 +277,9 @@ parasite_parameters:
 # If this section is not present, the simulation will use the default immune system parameters in immune_system_parameters section.
 immune_system_paprameter_candidates:
   used_in_simulation: 0
+  # random_selection will override used_in_simulation, if true,
+  # the simulation will randomly select one of the candidates to use in the simulation.
+  random_selection: false
   candidates:
     0: #5 in Fig 12 (highest p_seek_base)
       p_ci_symp: 0.5
