@@ -23,6 +23,9 @@ public:
   [[nodiscard]] int get_used_in_simulation() const { return used_in_simulation_; }
   void set_used_in_simulation(const int value) { used_in_simulation_ = value; }
 
+  [[nodiscard]] bool get_random_selection() const { return random_selection_; }
+  void set_random_selection(const bool value) { random_selection_ = value; }
+
   [[nodiscard]] const std::map<int, ImmuneSystemParameterCandidate> &get_candidates() const {
     return candidates_;
   }
@@ -45,7 +48,8 @@ public:
   }
 
   void log_all() const {
-    spdlog::info("ImmuneSystemParameterCandidates: used_in_simulation={}", used_in_simulation_);
+    spdlog::info("ImmuneSystemParameterCandidates: used_in_simulation={}, random_selection={}",
+                 used_in_simulation_, random_selection_);
     for (const auto &[idx, c] : candidates_) {
       spdlog::info(
           "  candidate[{}]: p_ci_symp={}, z={}, kappa={}, midpoint={}, p_seek_base={}",
@@ -55,6 +59,7 @@ public:
 
 private:
   int used_in_simulation_ = 0;
+  bool random_selection_ = false;
   std::map<int, ImmuneSystemParameterCandidate> candidates_;
 };
 
@@ -64,6 +69,7 @@ struct YAML::convert<ImmuneSystemParameterCandidates> {
   static Node encode(const ImmuneSystemParameterCandidates &rhs) {
     Node node;
     node["used_in_simulation"] = rhs.get_used_in_simulation();
+    node["random_selection"] = rhs.get_random_selection();
     Node candidates_node;
     for (const auto &[idx, c] : rhs.get_candidates()) {
       Node cnode;
@@ -89,6 +95,9 @@ struct YAML::convert<ImmuneSystemParameterCandidates> {
     }
 
     rhs.set_used_in_simulation(node["used_in_simulation"].as<int>());
+    if (node["random_selection"]) {
+      rhs.set_random_selection(node["random_selection"].as<bool>());
+    }
 
     std::map<int, ImmuneSystemParameterCandidate> candidates;
     const auto &cmap = node["candidates"];

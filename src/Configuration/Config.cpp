@@ -61,6 +61,25 @@ bool Config::load(const std::string &filename) {
       spdlog::info("Found immune_system_paprameter_candidates section — parsing candidates");
       immune_system_parameter_candidates_ =
           config["immune_system_paprameter_candidates"].as<ImmuneSystemParameterCandidates>();
+
+      if (immune_system_parameter_candidates_.get_random_selection()) {
+        const auto &candidates = immune_system_parameter_candidates_.get_candidates();
+        if (candidates.empty()) {
+          spdlog::warn("immune_system_paprameter_candidates: random_selection=true but candidates is empty — skipping random selection");
+        } else {
+          // Collect actual keys so selection is correct even for non-contiguous maps
+          std::vector<int> candidate_keys;
+          candidate_keys.reserve(candidates.size());
+          for (const auto &[key, val] : candidates) { candidate_keys.push_back(key); }
+          const auto pick =
+              static_cast<std::size_t>(Model::get_random()->random_uniform(static_cast<uint64_t>(candidate_keys.size())));
+          const int selected_idx = candidate_keys[pick];
+          immune_system_parameter_candidates_.set_used_in_simulation(selected_idx);
+          spdlog::info("immune_system_paprameter_candidates: random_selection=true, num_candidates={}, sampled used_in_simulation={}",
+                       candidate_keys.size(), selected_idx);
+        }
+      }
+
       has_immune_system_parameter_candidates_ = true;
       immune_system_parameter_candidates_.log_all();
 
