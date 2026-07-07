@@ -169,6 +169,61 @@ TEST_F(ImmuneSystemParameterCandidatesTest, CandidateMissingFieldThrows) {
                std::runtime_error);
 }
 
+// Non-sequential keys are decoded correctly and the key-collection logic used by
+// Config::load random_selection picks only valid keys.
+TEST_F(ImmuneSystemParameterCandidatesTest, RandomSelectionNonSequentialKeys) {
+  // Build a node with keys 2, 7, 15 — deliberately non-sequential
+  YAML::Node node;
+  node["used_in_simulation"] = 2;
+  node["random_selection"]   = true;
+  const std::vector<int> inputKeys = {2, 7, 15};
+  YAML::Node cmap;
+  for (int key : inputKeys) {
+    YAML::Node cn;
+    cn["p_ci_symp"]   = 0.5;
+    cn["z"]           = 3.0;
+    cn["kappa"]       = 0.1;
+    cn["midpoint"]    = 0.2;
+    cn["p_seek_base"] = 0.8;
+    cmap[key] = cn;
+  }
+  node["candidates"] = cmap;
+
+  ImmuneSystemParameterCandidates result;
+  EXPECT_NO_THROW(YAML::convert<ImmuneSystemParameterCandidates>::decode(node, result));
+
+  EXPECT_TRUE(result.get_random_selection());
+  EXPECT_EQ(result.get_candidates().size(), 3u);
+
+  // Verify all expected keys are present
+  for (int key : inputKeys) {
+    EXPECT_TRUE(result.get_candidates().count(key) > 0)
+        << "Expected key " << key << " to exist in candidates";
+  }
+
+  // Simulate what Config::load does: collect keys, verify every possible pick
+  // resolves to a valid candidate key.
+  std::vector<int> actualKeys;
+  actualKeys.reserve(result.get_candidates().size());
+  for (const auto &[key, val] : result.get_candidates()) { actualKeys.push_back(key); }
+
+  EXPECT_EQ(actualKeys, inputKeys)  // std::map iterates in sorted key order
+      << "Candidate keys should be sorted and match the input set";
+
+  // Every index in [0, actualKeys.size()) must map to a valid candidate key
+  for (std::size_t pick = 0; pick < actualKeys.size(); ++pick) {
+    const int selectedKey = actualKeys[pick];
+    result.set_used_in_simulation(selectedKey);
+    EXPECT_TRUE(result.has_selected_candidate())
+        << "pick=" << pick << " -> key=" << selectedKey << " should be a valid candidate";
+    EXPECT_NO_THROW(result.get_selected_candidate());
+  }
+
+  // A key NOT in the set must NOT resolve to a valid candidate
+  result.set_used_in_simulation(99);
+  EXPECT_FALSE(result.has_selected_candidate());
+}
+
 // log_all does not crash (smoke test)
 TEST_F(ImmuneSystemParameterCandidatesTest, LogAllDoesNotCrash) {
   auto node = make_candidates_node(0);
