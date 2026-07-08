@@ -30,7 +30,7 @@ public:
 
   virtual void draw_random_immune();
 
-  virtual double get_current_value();
+  [[nodiscard]] virtual double get_current_value();
 
   [[nodiscard]] virtual double get_decay_rate(const int &age) const = 0;
 

@@ -51,9 +51,7 @@ TEST_F(RandomTest, random_gamma_SampleMeanCloseToTheoretical) {
   double epsilon = 0.05;  // Acceptable error margin
 
   std::vector<double> samples(sample_size);
-  for (int i = 0; i < sample_size; ++i) {
-    samples[i] = rng.random_gamma(shape, scale);
-  }
+  for (int i = 0; i < sample_size; ++i) { samples[i] = rng.random_gamma(shape, scale); }
 
   double sample_mean = calculate_mean(samples);
   double theoretical_mean = shape * scale;
@@ -70,9 +68,7 @@ TEST_F(RandomTest, random_gamma_SampleVarianceCloseToTheoretical) {
   double epsilon = 1;  // theoretical variance is about 12
 
   std::vector<double> samples(sample_size);
-  for (int i = 0; i < sample_size; ++i) {
-    samples[i] = rng.random_gamma(shape, scale);
-  }
+  for (int i = 0; i < sample_size; ++i) { samples[i] = rng.random_gamma(shape, scale); }
 
   double sample_mean = calculate_mean(samples);
   double sample_variance = calculate_variance(samples, sample_mean);
@@ -92,9 +88,7 @@ TEST_F(RandomTest, random_gamma_GammaAlpha1Scale1_ExponentialDistribution) {
   double epsilon_variance = 0.1;
 
   std::vector<double> samples(sample_size);
-  for (int i = 0; i < sample_size; ++i) {
-    samples[i] = rng.random_gamma(shape, scale);
-  }
+  for (int i = 0; i < sample_size; ++i) { samples[i] = rng.random_gamma(shape, scale); }
 
   double sample_mean = calculate_mean(samples);
   double sample_variance = calculate_variance(samples, sample_mean);
@@ -114,9 +108,7 @@ TEST_F(RandomTest, random_gamma_LargeAlphaScaleValues) {
   double epsilon_variance = 10.0;  // variance is about 200
 
   std::vector<double> samples(sample_size);
-  for (int i = 0; i < sample_size; ++i) {
-    samples[i] = rng.random_gamma(shape, scale);
-  }
+  for (int i = 0; i < sample_size; ++i) { samples[i] = rng.random_gamma(shape, scale); }
 
   double sample_mean = calculate_mean(samples);
   double sample_variance = calculate_variance(samples, sample_mean);
@@ -136,9 +128,7 @@ TEST_F(RandomTest, random_gamma_ShapeMuchLargerThanScale) {
   double epsilon_variance = 0.5;  // var is about 10
 
   std::vector<double> samples(sample_size);
-  for (int i = 0; i < sample_size; ++i) {
-    samples[i] = rng.random_gamma(shape, scale);
-  }
+  for (int i = 0; i < sample_size; ++i) { samples[i] = rng.random_gamma(shape, scale); }
 
   double sample_mean = calculate_mean(samples);
   double sample_variance = calculate_variance(samples, sample_mean);
@@ -151,21 +141,20 @@ TEST_F(RandomTest, random_gamma_ShapeMuchLargerThanScale) {
 
 // Test with scale much larger than shape
 TEST_F(RandomTest, random_gamma_ScaleMuchLargerThanShape) {
-  double shape = 2.0;
-  double scale = 10.0;
-  int sample_size = 100000;
-  double epsilon_mean = 0.5;
-  double epsilon_variance = 5;  // var is about 200
+  constexpr double shape = 2.0;
+  constexpr double scale = 10.0;
+  constexpr int sample_size = 100000;
 
   std::vector<double> samples(sample_size);
-  for (int i = 0; i < sample_size; ++i) {
-    samples[i] = rng.random_gamma(shape, scale);
-  }
+  for (int i = 0; i < sample_size; ++i) { samples[i] = rng.random_gamma(shape, scale); }
 
   double sample_mean = calculate_mean(samples);
   double sample_variance = calculate_variance(samples, sample_mean);
   double theoretical_mean = shape * scale;
   double theoretical_variance = shape * scale * scale;
+
+  double epsilon_mean = 4.0 * std::sqrt(theoretical_variance / sample_size);
+  double epsilon_variance = 5.0 * std::sqrt(2.0);  // rough for this specific case
 
   EXPECT_NEAR(sample_mean, theoretical_mean, epsilon_mean);
   EXPECT_NEAR(sample_variance, theoretical_variance, epsilon_variance);

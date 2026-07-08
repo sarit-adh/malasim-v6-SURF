@@ -1,15 +1,14 @@
 #include "NonInfantImmuneComponent.h"
-#include "Simulation/Model.h"
+
 #include "Configuration/Config.h"
+#include "Simulation/Model.h"
 
+// OBJECTPOOL_IMPL(NonInfantImmuneComponent)
 
-//OBJECTPOOL_IMPL(NonInfantImmuneComponent)
+NonInfantImmuneComponent::NonInfantImmuneComponent(ImmuneSystem* immune_system)
+    : ImmuneComponent(immune_system) {}
 
-NonInfantImmuneComponent::NonInfantImmuneComponent(ImmuneSystem *immune_system) : ImmuneComponent(immune_system) {
-}
-
-NonInfantImmuneComponent::~NonInfantImmuneComponent() {
-}
+NonInfantImmuneComponent::~NonInfantImmuneComponent() = default;
 
 double NonInfantImmuneComponent::get_acquire_rate(const int &age) const {
   const auto &immune_parameters = Model::get_config()->get_immune_system_parameters();
