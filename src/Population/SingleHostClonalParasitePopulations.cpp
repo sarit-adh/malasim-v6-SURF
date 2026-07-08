@@ -46,22 +46,29 @@ void SingleHostClonalParasitePopulations::add(
 // }
 
 void SingleHostClonalParasitePopulations::remove(size_t index) {
-  if (index < 0 || index >= parasites_.size()) { throw std::out_of_range("Index out of range"); }
+  if (index >= parasites_.size()) { throw std::out_of_range("Index out of range"); }
+
   ClonalParasitePopulation* bp = parasites_[index].get();
-  //    std::cout << parasites_.size() << std::endl;
+
   if (bp->get_index() != index) {
     spdlog::error(
-        "Incorrect index when remove parasite from SingleHostClonalParasitePopulations: {} - {} - "
-        "{}",
+        "Incorrect index when remove parasite from "
+        "SingleHostClonalParasitePopulations: {} - {} - {}",
         bp->get_index(), index, parasites_[index]->get_index());
+
     throw std::runtime_error(
-        "Incorrect index when remove parasite from SingleHostClonalParasitePopulations");
+        "Incorrect index when remove parasite from "
+        "SingleHostClonalParasitePopulations");
   }
 
-  parasites_.back()->set_index(index);
-  parasites_[index] = std::move(parasites_.back());
+  const size_t last_index = parasites_.size() - 1;
+
+  if (index != last_index) {
+    parasites_.back()->set_index(index);
+    parasites_[index] = std::move(parasites_.back());
+  }
+
   parasites_.pop_back();
-  // bp automatically deleted
 }
 
 int SingleHostClonalParasitePopulations::latest_update_time() const {
@@ -106,37 +113,36 @@ void SingleHostClonalParasitePopulations::update_with_drug_effects(DrugsInBlood*
   }
 }
 
+double log10_sum(double log10_a, double log10_b) {
+  const double zero = ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY;
+
+  if (log10_a <= zero) { return log10_b; }
+
+  if (log10_b <= zero) { return log10_a; }
+
+  const double max_log = std::max(log10_a, log10_b);
+  const double min_log = std::min(log10_a, log10_b);
+
+  return max_log + std::log10(1.0 + std::pow(10.0, min_log - max_log));
+}
+
 void SingleHostClonalParasitePopulations::clear_cured_parasites(double cured_threshold) {
   log10_total_infectious_density_ = ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY;
 
-  // Check if the vector is empty before proceeding
-  if (parasites_.empty()) {
-    return;  // Nothing to clear or update
-  }
+  size_t p_index = 0;
+  while (p_index < parasites_.size()) {
+    if (parasites_[p_index]->last_update_log10_parasite_density() <= cured_threshold) {
+      remove(p_index);
 
-  // Use a signed type for the index to avoid underflow issues with the loop condition
-  for (int i = static_cast<int>(parasites_.size()) - 1; i >= 0; --i) {
-    // Ensure index is valid before accessing (although the loop condition handles this)
-    if (i < 0 || i >= static_cast<int>(parasites_.size())) {
-      // This should ideally not happen with the corrected loop, but adds safety
+      // Do not increment i.
+      // A parasite from the back may have been moved into this position.
       continue;
     }
 
-    if (parasites_[i]->last_update_log10_parasite_density() <= cured_threshold) {
-      remove(static_cast<size_t>(i));  // remove expects size_t
-    } else {
-      // Safely calculate total infectious density
-      double log10_density = parasites_[i]->get_log10_infectious_density();
-      if (log10_total_infectious_density_ == ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY) {
-        log10_total_infectious_density_ = log10_density;
-      } else {
-        // Avoid potential floating point issues if density is very low
-        if (log10_density > ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY) {
-          log10_total_infectious_density_ +=
-              log10(pow(10, log10_density - log10_total_infectious_density_) + 1.0);
-        }
-      }
-    }
+    log10_total_infectious_density_ = log10_sum(
+        log10_total_infectious_density_, parasites_[p_index]->get_log10_infectious_density());
+
+    ++p_index;
   }
 }
 
@@ -187,7 +193,7 @@ void SingleHostClonalParasitePopulations::apply_drug_effects_to(
     }
 
     const auto p_temp = drug->get_parasite_killing_rate(blood_parasite->genotype()->genotype_id());
-    percent_parasite_remove = percent_parasite_remove + p_temp - percent_parasite_remove * p_temp;
+    percent_parasite_remove = percent_parasite_remove + p_temp - (percent_parasite_remove * p_temp);
   }
   if (percent_parasite_remove > 0) {
     blood_parasite->perform_drug_action(percent_parasite_remove,

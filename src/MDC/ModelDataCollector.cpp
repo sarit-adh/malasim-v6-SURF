@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 #include <numeric>
 
 #include "Configuration/Config.h"
@@ -20,17 +19,24 @@
 #include "Utils/Constants.h"
 #include "Utils/Index/PersonIndexByLocationStateAgeClass.h"
 
-// Fill the vector indicated with zeros, this should compile into a memset call
-// which is faster than a loop
-#define zero_fill(vector) std::fill(vector.begin(), vector.end(), 0)
-#define zero_fill_matrix_2d(vector) \
-  std::for_each(vector.begin(), vector.end(), [](auto &v) { zero_fill(v); })
-#define zero_fill_matrix_3d(vector) \
-  std::for_each(vector.begin(), vector.end(), [](auto &v) { zero_fill_matrix_2d(v); })
+template <typename Range>
+void zero_fill(Range &range) {
+  std::ranges::fill(range, 0);
+}
+
+template <typename Matrix2D>
+void zero_fill_matrix_2d(Matrix2D &matrix) {
+  for (auto &row : matrix) { std::ranges::fill(row, 0); }
+}
+
+template <typename Matrix3D>
+void zero_fill_matrix_3d(Matrix3D &matrix) {
+  for (auto &plane : matrix) { zero_fill_matrix_2d(plane); }
+}
 
 class PersonIndexByLocationStateAgeClass;
 
-ModelDataCollector::ModelDataCollector() {}
+ModelDataCollector::ModelDataCollector() = default;
 
 ModelDataCollector::~ModelDataCollector() = default;
 
@@ -367,7 +373,7 @@ void ModelDataCollector::perform_population_statistic() {
             : static_cast<double>(popsize_by_location_hoststate_[loc][Person::CLINICAL])
                   / blood_slide_prevalence_by_location_[loc];
 
-    popsize_by_location_[loc] = Model::get_population()->size_at(static_cast<int>(loc));
+    popsize_by_location_[loc] = Model::get_population()->size_at(loc);
 
     const auto number_of_blood_slide_positive = blood_slide_prevalence_by_location_[loc];
     blood_slide_prevalence_by_location_[loc] =
@@ -488,13 +494,14 @@ void ModelDataCollector::update_average_number_bitten(const int &location, const
 }
 
 void ModelDataCollector::calculate_percentage_bites_on_top_20() {
-  auto pi = Model::get_population()->get_person_index<PersonIndexByLocationStateAgeClass>();
+  auto* pi = Model::get_population()->get_person_index<PersonIndexByLocationStateAgeClass>();
   for (auto loc = 0; loc < Model::get_config()->number_of_locations(); loc++) {
     for (auto hs = 0; hs < Person::NUMBER_OF_STATE - 1; hs++) {
       for (auto ac = 0; ac < Model::get_config()->number_of_age_classes(); ac++) {
-        for (auto p : pi->vPerson()[loc][hs][ac]) {
+        for (auto* person : pi->vPerson()[loc][hs][ac]) {
           // add to total average number bitten
-          update_average_number_bitten(loc, p->get_birthday(), p->get_number_of_times_bitten());
+          update_average_number_bitten(loc, person->get_birthday(),
+                                       person->get_number_of_times_bitten());
         }
       }
     }
@@ -505,7 +512,7 @@ void ModelDataCollector::calculate_percentage_bites_on_top_20() {
     double total = 0;
     double t20 = 0;
     const auto size20 = static_cast<int>(
-        std::round(average_number_biten_by_location_person_[location].size() / 100.0 * 20));
+        std::round(20 * average_number_biten_by_location_person_[location].size() / 100.0));
 
     for (auto i = 0;
          static_cast<size_t>(i) < average_number_biten_by_location_person_[location].size(); i++) {
@@ -682,7 +689,8 @@ void ModelDataCollector::record_1_recrudescence_treatment(const int &location, c
   monthly_number_of_recrudescence_treatment_by_location_age_[location][age_clamp] += 1;
 }
 
-void ModelDataCollector::record_1_mutation(const int &location, Genotype* from, Genotype* to) {
+void ModelDataCollector::record_1_mutation(const core::LocationId &location, Genotype* from,
+                                           Genotype* to) {
   if (!recording_) { return; }
   cumulative_mutants_by_location_[location] += 1;
   monthly_number_of_mutation_events_by_location_[location] += 1;
@@ -695,7 +703,7 @@ void ModelDataCollector::record_1_mutation_by_drug(const int &location, Genotype
   auto mutation_tracker_info = std::make_tuple(location, Model::get_scheduler()->current_time(),
                                                Model::get_scheduler()->get_current_month_in_year(),
                                                drug_id, from->genotype_id(), to->genotype_id());
-  mutation_tracker[location].push_back(mutation_tracker_info);
+  mutation_tracker[location].emplace_back(mutation_tracker_info);
 }
 
 void ModelDataCollector::record_1_treatment_failure_by_therapy(const int &location,
@@ -856,7 +864,7 @@ void ModelDataCollector::calculate_eir() {
       const auto number_of_0 =
           std::count(eir_by_location_year_[loc].begin(), eir_by_location_year_[loc].end(), 0.0);
 
-      const double denom = static_cast<double>(eir_by_location_year_[loc].size() - number_of_0);
+      const auto denom = static_cast<double>(eir_by_location_year_[loc].size() - number_of_0);
 
       eir_by_location_[loc] = (denom == 0.0) ? 0.0 : (sum_eir / denom);
     }
@@ -878,7 +886,7 @@ void ModelDataCollector::record_amu_afu(Person* person, Therapy* therapy,
                                         ClonalParasitePopulation* clinical_caused_parasite) {
   if (Model::get_scheduler()->current_time()
       >= Model::get_config()->get_simulation_timeframe().get_start_of_comparison_period()) {
-    auto sc_therapy = dynamic_cast<SCTherapy*>(therapy);
+    auto* sc_therapy = dynamic_cast<SCTherapy*>(therapy);
     if (sc_therapy != nullptr) {
       const auto art_id = sc_therapy->get_artemisinin_id();
       if (art_id != -1 && sc_therapy->drug_ids.size() > 1) {
@@ -984,6 +992,8 @@ void ModelDataCollector::monthly_update() {
     zero_fill(malaria_deaths_by_location_);
     zero_fill(monthly_treatment_failure_by_location_);
     zero_fill(monthly_treatment_success_by_location_);
+    zero_fill(monthly_number_of_tf_by_location_);
+    zero_fill(monthly_number_of_mutation_events_by_location_);
 
     for (int loc = 0; loc < Model::get_config()->number_of_locations(); loc++) {
       zero_fill(monthly_nontreatment_by_location_age_class_[loc]);
@@ -999,13 +1009,11 @@ void ModelDataCollector::monthly_update() {
       zero_fill(monthly_number_of_recrudescence_treatment_by_location_age_class_[loc]);
       zero_fill(monthly_number_of_recrudescence_treatment_by_location_age_[loc]);
 
-      monthly_number_of_tf_by_location_[loc] = 0;
-      monthly_number_of_new_infections_by_location_[loc] = 0;
-      monthly_number_of_clinical_episode_by_location_[loc] = 0;
-      monthly_number_of_mutation_events_by_location_[loc] = 0;
-      for (int age = 0; age < 100; age++) {
-        monthly_number_of_clinical_episode_by_location_age_[loc][age] = 0;
-      }
+      zero_fill(monthly_number_of_clinical_episode_by_location_age_[loc]);
+      // for (int age = 0; age < 100; age++) {
+      //   monthly_number_of_clinical_episode_by_location_age_[loc][age] = 0;
+      // }
+
       // zero the new age-indexed seeking treatment counters
       if (!monthly_number_of_people_seeking_treatment_by_location_age_index_.empty()) {
         zero_fill(monthly_number_of_people_seeking_treatment_by_location_age_index_[loc]);

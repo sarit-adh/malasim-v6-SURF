@@ -1060,7 +1060,7 @@ public:
 
   void record_1_non_treated_case(const int &location, const int &age, const int &age_class);
 
-  void record_1_mutation(const int &location, Genotype* from, Genotype* to);
+  void record_1_mutation(const core::LocationId &location, Genotype* from, Genotype* to);
 
   void record_1_mutation_by_drug(const int &location, Genotype* from, Genotype* to, int drug_id);
 
