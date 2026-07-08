@@ -1,0 +1,40 @@
+#!/bin/bash
+#PBS -N SubmitJobs
+#PBS -l select=1:ncpus=1:mem=2gb
+#PBS -l walltime=48:00:00
+#PBS -q max
+#PBS -o ../log/submit_all.output
+#PBS -e ../log/submit_all.error
+
+cd $PBS_O_WORKDIR
+
+CMD_FILE="runs.txt"
+USER_NAME=$(whoami) # or hardcode if needed
+MAX_ACTIVE_JOBS=480 # target number of concurrently queued/running jobs
+SLEEP=15            # how often to check job count (in seconds)
+
+# Function to get the number of running + queued jobs under your user
+get_job_count() {
+  qstat -u "$USER_NAME" | awk '$10 == "R" && $3 == "max"' | wc -l
+}
+
+INDEX=0
+
+while IFS= read -r CMD; do
+  if [[ -n "$CMD" ]]; then
+    # Throttle job submission
+    JOB_COUNT=$(get_job_count)
+    while [ "$JOB_COUNT" -ge "$MAX_ACTIVE_JOBS" ]; do
+      echo "[$(date)] $JOB_COUNT jobs active, waiting..."
+      sleep $SLEEP
+      JOB_COUNT=$(get_job_count)
+    done
+
+    echo "Submitting job $INDEX"
+    qsub -v INDEX=$INDEX,CMD="$CMD" -o ./log/${INDEX}.output -e ./log/${INDEX}.error ./job_template.pbs
+    ((INDEX++))
+    sleep 0.1
+  fi
+done <"$CMD_FILE"
+
+echo "All jobs submitted."

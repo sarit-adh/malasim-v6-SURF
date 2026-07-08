@@ -349,14 +349,14 @@ genotype_parameters:
 
   # Daily probability that a parasite will mutate at a given locus when drug concentration is not zero
   mutation_probability_per_locus: 0.001
-  default_cnv_reversion_multiplier: 0.5
+  default_cnv_weversion_multiplier: 0.0
 
   pf_genotype_info:
     - chromosome: 5
       genes:
         - name: "Pfmdr1"
           max_copies: 2
-          cnv_reversion_multiplier: 0.5
+          cnv_reversion_multiplier: 0.0
           # copy number variation cost of resistances
           cnv_daily_crs: [0, 0.0005]
           cnv_multiplicative_effect_on_EC50:
@@ -538,7 +538,7 @@ genotype_parameters:
       genes:
         - name: "Pfplasmepsin"
           max_copies: 2
-          cnv_reversion_multiplier: 0.5
+          cnv_reversion_multiplier: 0.0
           cnv_daily_crs: [0, 0.0005]
           cnv_multiplicative_effect_on_EC50:
             - drug_id: 3
@@ -1002,7 +1002,6 @@ epidemiological_parameters:
   # special function which makes the probability of an infection (resulting
   # from an infectious mosquito bite) age-dependent
   using_variable_probability_infectious_bites_cause_infection: false
-
 
   # Age-based modifier applied to treatment-seeking probability AFTER the treatment coverage model.
   #
