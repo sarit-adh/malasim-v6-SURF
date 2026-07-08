@@ -1,5 +1,6 @@
 #include <yaml-cpp/yaml.h>
 
+#include <cmath>
 #include <string>
 
 #include "Parasites/Genotype.h"
@@ -130,6 +131,22 @@ TEST_F(GenotypeTest, MatchPattern) {
   wildcard_pattern[4] = '.';
   wildcard_pattern[9] = '.';
   EXPECT_TRUE(g.match_pattern(wildcard_pattern));
+}
+
+TEST_F(GenotypeTest, CnvMultiplicativeEffectChangesEC50ForDoubleCopyGene) {
+  auto* genotype = build_multi_copy_genotype(2, 1);
+  ASSERT_NE(genotype, nullptr);
+  auto* drug = Model::get_drug_db()->at(4).get();
+  const auto &pfmdr1 = Model::get_config()
+                           ->get_genotype_parameters()
+                           .get_pf_genotype_info()
+                           .chromosome_infos[4]
+                           .get_genes()[0];
+  const auto cnv_factor = pfmdr1.get_cnv_multiplicative_effect_on_EC50()[0].get_factors()[1];
+
+  const auto expected_ec50_power_n = std::pow(drug->base_EC50 * cnv_factor, drug->n());
+
+  EXPECT_DOUBLE_EQ(genotype->get_EC50_power_n(drug), expected_ec50_power_n);
 }
 
 TEST_F(GenotypeTest, PerformCnvReversionWithoutDrugsRevertsConfiguredGenes) {

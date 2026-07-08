@@ -282,13 +282,14 @@ void Genotype::calculate_EC50_power_n(const GenotypeParameters::PfGenotypeInfo &
           for (const auto &dt : *drug_db) {
             for (auto const &ec50s : res_gene_info.get_cnv_multiplicative_effect_on_EC50()) {
               if (ec50s.get_drug_id() == dt->id()) {
+                auto multiplicative_effect_factor = ec50s.get_factors()[copy_number - 1];
                 spdlog::trace(
                     "aa_sequence: {} CNV drug_id: {} chr: {} gene: {} EC50_power_n: {} * "
                     "multiplicative_effect_factor: {}  = {}",
                     aa_sequence, dt->id(), chromosome_i + 1, gene_i, EC50_power_n[dt->id()],
-                    ec50s.get_factors()[copy_number - 1],
-                    EC50_power_n[dt->id()] * ec50s.get_factors()[copy_number - 1]);
-                EC50_power_n[dt->id()] *= ec50s.get_factors()[copy_number - 1];
+                    multiplicative_effect_factor,
+                    EC50_power_n[dt->id()] * multiplicative_effect_factor);
+                EC50_power_n[dt->id()] *= multiplicative_effect_factor;
               }
             }
           }
@@ -298,9 +299,7 @@ void Genotype::calculate_EC50_power_n(const GenotypeParameters::PfGenotypeInfo &
   }
 
   // power n
-  for (const auto &dt : *drug_db) {
-    EC50_power_n[dt->id()] = pow(EC50_power_n[dt->id()], dt->n());
-  }
+  for (const auto &dt : *drug_db) { EC50_power_n[dt->id()] = pow(EC50_power_n[dt->id()], dt->n()); }
 }
 
 Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_random,
@@ -401,16 +400,15 @@ Genotype* Genotype::perform_cnv_reversion(Config* p_config, utils::Random* p_ran
       continue;
     }
 
-    const auto old_copy_number =
-        NumberHelpers::char_to_single_digit_number(new_pf_genotype_str[chromosome_i][gene_i].back());
+    const auto old_copy_number = NumberHelpers::char_to_single_digit_number(
+        new_pf_genotype_str[chromosome_i][gene_i].back());
     if (old_copy_number <= 1) { continue; }
     // Keep the extra copy while any active drug exposure still makes copy 2 more favorable.
     if (drug_selects_for_double_copy(gene_info, drugs_in_blood)) { continue; }
 
     // Iterate only CNV-capable genes here; the genotype structure is static across the run, so
     // the configuration precomputes this target list once instead of rescanning all genes.
-    const auto reversion_probability =
-        mutation_probability_by_locus * reversion_multiplier;
+    const auto reversion_probability = mutation_probability_by_locus * reversion_multiplier;
     if (reversion_probability <= 0) { continue; }
 
     if (p_random->random_flat(0.0, 1.0) < reversion_probability) {
