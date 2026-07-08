@@ -111,7 +111,7 @@ std::string Genotype::get_aa_sequence() const { return aa_sequence; }
 
 bool Genotype::is_valid(const GenotypeParameters::PfGenotypeInfo &gene_info) {
   for (int chromosome_i = 0; chromosome_i < 14; ++chromosome_i) {
-    auto chromosome_info = gene_info.chromosome_infos[chromosome_i];
+    const auto &chromosome_info = gene_info.chromosome_infos[chromosome_i];
     if (chromosome_info.get_genes().size() != pf_genotype_str[chromosome_i].size()) {
       spdlog::error("Error {} {}", pf_genotype_str[chromosome_i].size(),
                     chromosome_info.get_genes().size());
@@ -119,21 +119,21 @@ bool Genotype::is_valid(const GenotypeParameters::PfGenotypeInfo &gene_info) {
     }
 
     for (int gene_i = 0; gene_i < pf_genotype_str[chromosome_i].size(); ++gene_i) {
-      auto gene_info = chromosome_info.get_genes()[gene_i];
-      auto max_aa_pos = gene_info.get_max_copies() > 1
-                            ? pf_genotype_str[chromosome_i][gene_i].size() - 1
-                            : pf_genotype_str[chromosome_i][gene_i].size();
+      const auto &gene_config = chromosome_info.get_genes()[gene_i];
+      const auto max_aa_pos = gene_config.get_max_copies() > 1
+                                  ? pf_genotype_str[chromosome_i][gene_i].size() - 1
+                                  : pf_genotype_str[chromosome_i][gene_i].size();
 
       // check same size with aa postions info
-      if (gene_info.get_aa_positions().size() != max_aa_pos) {
+      if (gene_config.get_aa_positions().size() != max_aa_pos) {
         spdlog::error("Error {} {}", pf_genotype_str[chromosome_i][gene_i],
-                      gene_info.get_aa_positions().size());
+                      gene_config.get_aa_positions().size());
         return false;
       }
 
       for (int aa_i = 0; aa_i < max_aa_pos; ++aa_i) {
-        auto aa_pos_info = gene_info.get_aa_positions()[aa_i];
-        auto element = pf_genotype_str[chromosome_i][gene_i][aa_i];
+        const auto &aa_pos_info = gene_config.get_aa_positions()[aa_i];
+        const auto element = pf_genotype_str[chromosome_i][gene_i][aa_i];
         if (std::find(aa_pos_info.get_amino_acids().begin(), aa_pos_info.get_amino_acids().end(),
                       std::string(1, element))
             == aa_pos_info.get_amino_acids().end()) {
@@ -143,10 +143,10 @@ bool Genotype::is_valid(const GenotypeParameters::PfGenotypeInfo &gene_info) {
       }
 
       // check number copy valid or not
-      if (gene_info.get_max_copies() > 1) {
+      if (gene_config.get_max_copies() > 1) {
         auto copy_number = NumberHelpers::char_to_single_digit_number(
             pf_genotype_str[chromosome_i][gene_i].back());
-        if (copy_number > gene_info.get_max_copies()) {
+        if (copy_number > gene_config.get_max_copies()) {
           spdlog::error("Incorrect copy number");
           return false;
         }
@@ -162,18 +162,18 @@ void Genotype::calculate_daily_fitness(const GenotypeParameters::PfGenotypeInfo 
 
   spdlog::trace("Genotype: {}", aa_sequence);
   for (int chromosome_i = 0; chromosome_i < pf_genotype_str.size(); ++chromosome_i) {
-    auto chromosome_info = gene_info.chromosome_infos[chromosome_i];
+    const auto &chromosome_info = gene_info.chromosome_infos[chromosome_i];
 
     for (int gene_i = 0; gene_i < pf_genotype_str[chromosome_i].size(); ++gene_i) {
-      auto res_gene_info = chromosome_info.get_genes()[gene_i];
-      auto max_aa_pos = res_gene_info.get_max_copies() > 1
-                            ? pf_genotype_str[chromosome_i][gene_i].size() - 1
-                            : pf_genotype_str[chromosome_i][gene_i].size();
+      const auto &res_gene_info = chromosome_info.get_genes()[gene_i];
+      const auto max_aa_pos = res_gene_info.get_max_copies() > 1
+                                  ? pf_genotype_str[chromosome_i][gene_i].size() - 1
+                                  : pf_genotype_str[chromosome_i][gene_i].size();
 
       for (int aa_i = 0; aa_i < max_aa_pos; ++aa_i) {
         // calculate cost of resistance
-        auto aa_pos_info = res_gene_info.get_aa_positions()[aa_i];
-        auto element = pf_genotype_str[chromosome_i][gene_i][aa_i];
+        const auto &aa_pos_info = res_gene_info.get_aa_positions()[aa_i];
+        const auto element = pf_genotype_str[chromosome_i][gene_i][aa_i];
 
         auto it = std::find(aa_pos_info.get_amino_acids().begin(),
                             aa_pos_info.get_amino_acids().end(), std::string(1, element));
@@ -220,19 +220,19 @@ void Genotype::calculate_EC50_power_n(const GenotypeParameters::PfGenotypeInfo &
   for (const auto &dt : *drug_db) { EC50_power_n[dt->id()] = dt->base_EC50; }
 
   for (int chromosome_i = 0; chromosome_i < pf_genotype_str.size(); ++chromosome_i) {
-    auto chromosome_info = gene_info.chromosome_infos[chromosome_i];
+    const auto &chromosome_info = gene_info.chromosome_infos[chromosome_i];
 
     for (int gene_i = 0; gene_i < pf_genotype_str[chromosome_i].size(); ++gene_i) {
-      auto res_gene_info = chromosome_info.get_genes()[gene_i];
-      auto max_aa_pos = res_gene_info.get_max_copies() > 1
-                            ? pf_genotype_str[chromosome_i][gene_i].size() - 1
-                            : pf_genotype_str[chromosome_i][gene_i].size();
+      const auto &res_gene_info = chromosome_info.get_genes()[gene_i];
+      const auto max_aa_pos = res_gene_info.get_max_copies() > 1
+                                  ? pf_genotype_str[chromosome_i][gene_i].size() - 1
+                                  : pf_genotype_str[chromosome_i][gene_i].size();
       std::vector<int> number_of_effective_mutations_in_same_genes(drug_db->size(), 0);
 
       for (int aa_i = 0; aa_i < max_aa_pos; ++aa_i) {
         // calculate cost of resistance
-        auto aa_pos_info = res_gene_info.get_aa_positions()[aa_i];
-        auto element = pf_genotype_str[chromosome_i][gene_i][aa_i];
+        const auto &aa_pos_info = res_gene_info.get_aa_positions()[aa_i];
+        const auto element = pf_genotype_str[chromosome_i][gene_i][aa_i];
         auto it = std::find(aa_pos_info.get_amino_acids().begin(),
                             aa_pos_info.get_amino_acids().end(), std::string(1, element));
         if (it == aa_pos_info.get_amino_acids().end()) {
@@ -306,7 +306,7 @@ Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_
                                              DrugType* p_drug_type,
                                              double mutation_probability_by_locus) const {
   std::string new_aa_sequence{aa_sequence};
-  for (auto aa_pos : p_drug_type->resistant_aa_locations) {
+  for (const auto &aa_pos : p_drug_type->resistant_aa_locations) {
     // get aa position info (aa index in aa string, is copy number)
     if (p_config->get_genotype_parameters().get_mutation_mask()[aa_pos.aa_index_in_aa_string]
         == '1') {
@@ -332,12 +332,12 @@ Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_
           new_aa_sequence[aa_pos.aa_index_in_aa_string] =
               NumberHelpers::single_digit_number_to_char(new_copy_number);
         } else {
-          const std::vector<std::string> aa_list = p_config->get_genotype_parameters()
-                                                       .get_pf_genotype_info()
-                                                       .chromosome_infos[aa_pos.chromosome_id]
-                                                       .get_genes()[aa_pos.gene_id]
-                                                       .get_aa_positions()[aa_pos.aa_id]
-                                                       .get_amino_acids();
+          const auto &aa_list = p_config->get_genotype_parameters()
+                                    .get_pf_genotype_info()
+                                    .chromosome_infos[aa_pos.chromosome_id]
+                                    .get_genes()[aa_pos.gene_id]
+                                    .get_aa_positions()[aa_pos.aa_id]
+                                    .get_amino_acids();
           // std::cout << "aa_list: [" << aa_list[0] << "," << aa_list[1] << "]" << std::endl;
           // draw random aa id
           auto new_aa_id = p_random->random_uniform(aa_list.size() - 1);
@@ -377,7 +377,7 @@ Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_
 
 Genotype* Genotype::perform_cnv_reversion(Config* p_config, utils::Random* p_random,
                                           DrugsInBlood* drugs_in_blood) const {
-  auto new_pf_genotype_str = pf_genotype_str;
+  std::string new_aa_sequence;
   auto mutated = false;
 
   const auto &pf_genotype_info = p_config->get_genotype_parameters().get_pf_genotype_info();
@@ -395,13 +395,13 @@ Genotype* Genotype::perform_cnv_reversion(Config* p_config, utils::Random* p_ran
                                           ? gene_info.get_cnv_reversion_multiplier()
                                           : default_cnv_reversion_multiplier;
     if (reversion_multiplier < 0) { continue; }
-    if (new_pf_genotype_str[chromosome_i].size() <= gene_i
-        || new_pf_genotype_str[chromosome_i][gene_i].empty()) {
+    if (pf_genotype_str[chromosome_i].size() <= gene_i
+        || pf_genotype_str[chromosome_i][gene_i].empty()) {
       continue;
     }
 
-    const auto old_copy_number = NumberHelpers::char_to_single_digit_number(
-        new_pf_genotype_str[chromosome_i][gene_i].back());
+    const auto &gene_sequence = pf_genotype_str[chromosome_i][gene_i];
+    const auto old_copy_number = NumberHelpers::char_to_single_digit_number(gene_sequence.back());
     if (old_copy_number <= 1) { continue; }
     // Keep the extra copy while any active drug exposure still makes copy 2 more favorable.
     if (drug_selects_for_double_copy(gene_info, drugs_in_blood)) { continue; }
@@ -414,16 +414,20 @@ Genotype* Genotype::perform_cnv_reversion(Config* p_config, utils::Random* p_ran
     if (p_random->random_flat(0.0, 1.0) < reversion_probability) {
       // The trailing character in the gene token encodes CNV copy number, and reversion removes
       // one copy at a time without dropping below the single-copy baseline.
-      new_pf_genotype_str[chromosome_i][gene_i].back() =
+      if (!mutated) {
+        new_aa_sequence = aa_sequence;
+        mutated = true;
+      }
+      const auto copy_number_index = pf_genotype_info.calculate_aa_pos(
+          chromosome_i, gene_i, static_cast<int>(gene_info.get_aa_positions().size()));
+      new_aa_sequence[copy_number_index] =
           NumberHelpers::single_digit_number_to_char(std::max(1, old_copy_number - 1));
-      mutated = true;
     }
   }
 
   if (!mutated) { return const_cast<Genotype*>(this); }
   // Reuse the genotype database so reverted sequences continue to share canonical instances.
-  return Model::get_genotype_db()->get_genotype(
-      Genotype::convert_pf_genotype_str_to_string(new_pf_genotype_str));
+  return Model::get_genotype_db()->get_genotype(new_aa_sequence);
 }
 
 void Genotype::override_EC50_power_n(

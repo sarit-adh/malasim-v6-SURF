@@ -12,12 +12,11 @@ NonInfantImmuneComponent::~NonInfantImmuneComponent() {
 }
 
 double NonInfantImmuneComponent::get_acquire_rate(const int &age) const {
-  // Config is singleton - already cached at Model level
-  return (age > 80) ? Model::get_config()->get_immune_system_parameters().acquire_rate_by_age[80]
-                    : Model::get_config()->get_immune_system_parameters().acquire_rate_by_age[age];
+  const auto &immune_parameters = Model::get_config()->get_immune_system_parameters();
+  return immune_parameters.acquire_rate_by_age[(age > 80) ? 80 : age];
 }
 
 double NonInfantImmuneComponent::get_decay_rate(const int &age) const {
-  // Config is singleton - already cached at Model level
-  return Model::get_config()->get_immune_system_parameters().decay_rate;
+  const auto &immune_parameters = Model::get_config()->get_immune_system_parameters();
+  return immune_parameters.decay_rate;
 }

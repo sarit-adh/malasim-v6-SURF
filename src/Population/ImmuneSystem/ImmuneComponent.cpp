@@ -52,6 +52,6 @@ double ImmuneComponent::get_current_value() {
 void ImmuneComponent::update() { latest_value_ = get_current_value(); }
 
 void ImmuneComponent::draw_random_immune() {
-  const auto ims = Model::get_config()->get_immune_system_parameters();
+  const auto &ims = Model::get_config()->get_immune_system_parameters();
   latest_value_ = Model::get_random()->random_beta(ims.alpha_immune, ims.beta_immune);
 }

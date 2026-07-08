@@ -148,16 +148,11 @@ ClonalParasitePopulation* Person::add_new_parasite_to_blood(Genotype* parasite_t
 double Person::relative_infectivity(const double &log10_parasite_density) {
   if (log10_parasite_density == ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY) return 0.0;
 
+  const auto &relative_infectivity =
+      Model::get_config()->get_epidemiological_parameters().get_relative_infectivity();
   // this sigma has already taken 'ln' and 'log10' into account
-  const auto d_n = (log10_parasite_density
-                    * Model::get_config()
-                          ->get_epidemiological_parameters()
-                          .get_relative_infectivity()
-                          .get_sigma())
-                   + Model::get_config()
-                         ->get_epidemiological_parameters()
-                         .get_relative_infectivity()
-                         .get_ro_star();
+  const auto d_n = (log10_parasite_density * relative_infectivity.get_sigma())
+                   + relative_infectivity.get_ro_star();
   const auto prob_get_1_gametocyte = Model::get_random()->cdf_standard_normal_distribution(d_n);
 
   const auto return_value = (prob_get_1_gametocyte * prob_get_1_gametocyte) + 0.01;
@@ -516,7 +511,8 @@ void Person::update() {
     throw std::runtime_error("Person is dead");
   }
 
-  if (latest_update_time_ == Model::get_scheduler()->current_time()) return;
+  const auto current_time = Model::get_scheduler()->current_time();
+  if (latest_update_time_ == current_time) return;
 
   // update all drugs concentration
   drugs_in_blood_->update();
@@ -532,14 +528,13 @@ void Person::update() {
   //  the other will be update in birthday event
   update_relative_biting_rate();
 
-  latest_update_time_ = Model::get_scheduler()->current_time();
+  latest_update_time_ = current_time;
   //    std::cout << "End Person Update"<< std::endl;
 }
 
 void Person::update_relative_biting_rate() {
-  if (Model::get_config()
-          ->get_epidemiological_parameters()
-          .get_using_age_dependent_biting_level()) {
+  const auto &epidemiological_parameters = Model::get_config()->get_epidemiological_parameters();
+  if (epidemiological_parameters.get_using_age_dependent_biting_level()) {
     current_relative_biting_rate_ =
         innate_relative_biting_rate_ * get_age_dependent_biting_factor();
   } else {

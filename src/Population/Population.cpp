@@ -85,6 +85,12 @@ void Population::initialize() {
                            * Model::get_config()
                                  ->get_population_demographic()
                                  .get_artificial_rescaling_of_population_size());
+      const auto location_capacity =
+          popsize_by_location > 0 ? static_cast<std::size_t>(popsize_by_location) : std::size_t{0};
+      individual_relative_biting_by_location_[loc].reserve(location_capacity);
+      individual_relative_moving_by_location_[loc].reserve(location_capacity);
+      individual_foi_by_location_[loc].reserve(location_capacity);
+      all_alive_persons_by_location_[loc].reserve(location_capacity);
       auto temp_sum = 0;
       for (auto age_class = 0;
            age_class
@@ -699,10 +705,14 @@ void Population::perform_circulation_for_1_location(const int &from_location,
 
 bool Population::has_0_case() {
   auto* pi = get_person_index<PersonIndexByLocationStateAgeClass>();
-  for (int loc = 0; loc < Model::get_config()->number_of_locations(); loc++) {
+  auto* config = Model::get_config();
+  const auto number_of_locations = config->number_of_locations();
+  const auto number_of_age_classes = config->number_of_age_classes();
+  auto &persons_by_location_state_age = pi->vPerson();
+  for (int loc = 0; loc < number_of_locations; loc++) {
     for (int hs = Person::EXPOSED; hs <= Person::CLINICAL; hs++) {
-      for (int ac = 0; ac < Model::get_config()->number_of_age_classes(); ac++) {
-        if (!pi->vPerson()[loc][hs][ac].empty()) { return false; }
+      for (int ac = 0; ac < number_of_age_classes; ac++) {
+        if (!persons_by_location_state_age[loc][hs][ac].empty()) { return false; }
       }
     }
   }
@@ -712,10 +722,14 @@ bool Population::has_0_case() {
 void Population::update_all_individuals() {
   // update all individuals
   auto* pi = get_person_index<PersonIndexByLocationStateAgeClass>();
-  for (int loc = 0; loc < Model::get_config()->number_of_locations(); loc++) {
+  auto* config = Model::get_config();
+  const auto number_of_locations = config->number_of_locations();
+  const auto number_of_age_classes = config->number_of_age_classes();
+  auto &persons_by_location_state_age = pi->vPerson();
+  for (int loc = 0; loc < number_of_locations; loc++) {
     for (int hs = 0; hs < Person::DEAD; hs++) {
-      for (int ac = 0; ac < Model::get_config()->number_of_age_classes(); ac++) {
-        for (auto* person : pi->vPerson()[loc][hs][ac]) { person->update(); }
+      for (int ac = 0; ac < number_of_age_classes; ac++) {
+        for (auto* person : persons_by_location_state_age[loc][hs][ac]) { person->update(); }
       }
     }
   }
@@ -745,62 +759,74 @@ void Population::execute_all_individual_events(int up_to_time) {
 }
 
 void Population::persist_current_force_of_infection_to_use_n_days_later() {
-  for (auto loc = 0; loc < Model::get_config()->number_of_locations(); loc++) {
-    force_of_infection_for_n_days_by_location_[Model::get_scheduler()->current_time()
-                                               % Model::get_config()->number_of_tracking_days()]
-                                              [loc] = current_force_of_infection_by_location_[loc];
+  auto* config = Model::get_config();
+  const auto number_of_locations = config->number_of_locations();
+  auto &force_of_infection_for_today =
+      force_of_infection_for_n_days_by_location_[Model::get_scheduler()->current_time()
+                                                 % config->number_of_tracking_days()];
+  for (auto loc = 0; loc < number_of_locations; loc++) {
+    force_of_infection_for_today[loc] = current_force_of_infection_by_location_[loc];
   }
 }
 
 void Population::update_current_foi() {
   auto* pi = get_person_index<PersonIndexByLocationStateAgeClass>();
-  for (int location = 0; location < Model::get_config()->number_of_locations(); location++) {
+  auto* config = Model::get_config();
+  const auto number_of_locations = config->number_of_locations();
+  const auto number_of_age_classes = config->number_of_age_classes();
+  const auto &moving_level_values = config->get_movement_settings().get_v_moving_level_value();
+  auto &persons_by_location_state_age = pi->vPerson();
+  for (int location = 0; location < number_of_locations; location++) {
     // spdlog::info("location {} pop {}", location, size(location));
     // reset force of infection for each location
-    current_force_of_infection_by_location_[location] = 0.0;
-    sum_relative_biting_by_location_[location] = 0.0;
-    sum_relative_moving_by_location_[location] = 0.0;
+    auto location_force_of_infection = 0.0;
+    auto location_sum_relative_biting = 0.0;
+    auto location_sum_relative_moving = 0.0;
 
     // using clear so as system will not reallocate memory slot for vector
-    individual_foi_by_location_[location].clear();
-    individual_relative_biting_by_location_[location].clear();
-    individual_relative_moving_by_location_[location].clear();
-    all_alive_persons_by_location_[location].clear();
+    auto &individual_foi_values = individual_foi_by_location_[location];
+    auto &individual_relative_biting = individual_relative_biting_by_location_[location];
+    auto &individual_relative_moving = individual_relative_moving_by_location_[location];
+    auto &all_alive_persons = all_alive_persons_by_location_[location];
+    individual_foi_values.clear();
+    individual_relative_biting.clear();
+    individual_relative_moving.clear();
+    all_alive_persons.clear();
 
     for (int hs = 0; hs < Person::DEAD; hs++) {
-      for (int ac = 0; ac < Model::get_config()->number_of_age_classes(); ac++) {
+      for (int ac = 0; ac < number_of_age_classes; ac++) {
         // spdlog::info("There are {} individuals in location {} with host state {} and age class
         // {}", pi->vPerson()[location][hs][ac].size(), location, hs, ac); for (std::size_t i = 0; i
         // < pi->vPerson()[location][hs][ac].size(); i++) { Person* person =
         // pi->vPerson()[location][hs][ac][i];
-        for (auto* person : (pi->vPerson()[location][hs][ac])) {
+        for (auto* person : persons_by_location_state_age[location][hs][ac]) {
           double log_10_total_infectious_density =
               person->get_all_clonal_parasite_populations()->log10_total_infectious_density();
           const auto person_relative_biting_rate = person->get_current_relative_biting_rate();
-          auto individual_foi =
+          const auto person_foi =
               log_10_total_infectious_density == ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY
                   ? 0.0
                   : person_relative_biting_rate
                         * Person::relative_infectivity(log_10_total_infectious_density);
 
-          individual_foi_by_location_[location].push_back(individual_foi);
-          individual_relative_biting_by_location_[location].push_back(person_relative_biting_rate);
-          const auto &moving_level_value =
-              Model::get_config()
-                  ->get_movement_settings()
-                  .get_v_moving_level_value()[person->get_moving_level()];
-          individual_relative_moving_by_location_[location].push_back(moving_level_value);
+          individual_foi_values.push_back(person_foi);
+          individual_relative_biting.push_back(person_relative_biting_rate);
+          const auto &moving_level_value = moving_level_values[person->get_moving_level()];
+          individual_relative_moving.push_back(moving_level_value);
 
-          sum_relative_biting_by_location_[location] += person_relative_biting_rate;
-          sum_relative_moving_by_location_[location] += moving_level_value;
-          current_force_of_infection_by_location_[location] += individual_foi;
-          all_alive_persons_by_location_[location].push_back(person);
+          location_sum_relative_biting += person_relative_biting_rate;
+          location_sum_relative_moving += moving_level_value;
+          location_force_of_infection += person_foi;
+          all_alive_persons.push_back(person);
           // spdlog::info("person {} individual_relative_biting_by_location[{}]
           // {}",person->get_id(), location,
           //              individual_relative_biting_by_location[location].back());
         }
       }
     }
+    current_force_of_infection_by_location_[location] = location_force_of_infection;
+    sum_relative_biting_by_location_[location] = location_sum_relative_biting;
+    sum_relative_moving_by_location_[location] = location_sum_relative_moving;
     // spdlog::info("update_current_foi individual_relative_moving_by_location[{}] size: {} sum:
     // {}",location,
     //                individual_relative_moving_by_location[location].size(),
