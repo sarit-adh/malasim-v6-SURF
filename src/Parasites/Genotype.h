@@ -48,7 +48,7 @@ public:
   [[nodiscard]] int genotype_id() const { return genotype_id_; }
   void set_genotype_id(int genotype_id) { genotype_id_ = genotype_id; }
 
-  double get_EC50_power_n(DrugType* dt);
+  double get_EC50_power_n(DrugType* dt) const;
 
   bool resist_to(DrugType* dt);
 
@@ -64,7 +64,7 @@ public:
   void calculate_daily_fitness(const GenotypeParameters::PfGenotypeInfo &gene_info);
 
   void calculate_EC50_power_n(const GenotypeParameters::PfGenotypeInfo &info,
-                              DrugDatabase* p_database);
+                              DrugDatabase* drug_db);
 
   Genotype* perform_mutation_by_drug(Config* p_config, utils::Random* p_random,
                                      DrugType* p_drug_type,

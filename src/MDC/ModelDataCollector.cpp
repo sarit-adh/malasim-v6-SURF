@@ -698,7 +698,7 @@ void ModelDataCollector::record_1_mutation(const core::LocationId &location, Gen
   current_number_of_mutation_events_ += 1;
 }
 
-void ModelDataCollector::record_1_mutation_by_drug(const int &location, Genotype* from,
+void ModelDataCollector::record_1_mutation_by_drug(const core::LocationId &location, Genotype* from,
                                                    Genotype* to, int drug_id) {
   auto mutation_tracker_info = std::make_tuple(location, Model::get_scheduler()->current_time(),
                                                Model::get_scheduler()->get_current_month_in_year(),

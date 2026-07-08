@@ -69,17 +69,15 @@ Genotype* GenotypeDatabase::get_genotype(const std::string &aa_sequence) {
         Model::get_drug_db());
 
     // add min ec50 of each drug to db
-    for (int drug_id = 0; drug_id < Model::get_drug_db()->size();
-         drug_id++) {
+    for (int drug_id = 0; drug_id < Model::get_drug_db()->size(); drug_id++) {
       if (!drug_id_ec50_.contains(drug_id)) {
         if (!drug_id_ec50_[drug_id].contains(new_genotype->get_aa_sequence())) {
-          drug_id_ec50_[drug_id][new_genotype->get_aa_sequence()] = new_genotype->get_EC50_power_n(
-              Model::get_drug_db()->at(drug_id).get());
+          drug_id_ec50_[drug_id][new_genotype->get_aa_sequence()] =
+              new_genotype->get_EC50_power_n(Model::get_drug_db()->at(drug_id).get());
         } else {
           drug_id_ec50_[drug_id][new_genotype->get_aa_sequence()] =
               std::min(drug_id_ec50_[drug_id][new_genotype->get_aa_sequence()],
-                       new_genotype->get_EC50_power_n(
-                           Model::get_drug_db()->at(drug_id).get()));
+                       new_genotype->get_EC50_power_n(Model::get_drug_db()->at(drug_id).get()));
         }
       }
     }

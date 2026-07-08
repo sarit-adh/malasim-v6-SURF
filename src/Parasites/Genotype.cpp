@@ -99,7 +99,7 @@ Genotype* Genotype::modify_genotype_allele(const std::vector<std::tuple<int, int
   return Model::get_genotype_db()->get_genotype(new_aa_sequence);
 }
 
-double Genotype::get_EC50_power_n(DrugType* dt) { return EC50_power_n[dt->id()]; }
+double Genotype::get_EC50_power_n(DrugType* dt) const { return EC50_power_n[dt->id()]; }
 
 std::ostream &operator<<(std::ostream &os, Genotype &genotype) {
   os << genotype.genotype_id_ << "\t";
@@ -307,67 +307,70 @@ Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_
                                              double mutation_probability_by_locus) const {
   std::string new_aa_sequence{aa_sequence};
   for (const auto &aa_pos : p_drug_type->resistant_aa_locations) {
-    // get aa position info (aa index in aa string, is copy number)
-    if (p_config->get_genotype_parameters().get_mutation_mask()[aa_pos.aa_index_in_aa_string]
-        == '1') {
-      const auto p_mutation = p_random->random_flat(0.0, 1.0);
-      // std::cout << "p: " << p << " Mutation probability: " << mutation_probability_by_locus <<
-      // std::endl; std::cout << "aa_pos_id: " << aa_pos_id << " aa_pos.aa_index_in_aa_string: "
-      // << aa_pos.aa_index_in_aa_string << " aa_pos.is_copy_number: " << aa_pos.is_copy_number <<
-      // std::endl;
-      if (p_mutation < mutation_probability_by_locus) {
-        if (aa_pos.is_copy_number) {
-          // Drug-driven CNV mutation can step one copy up or down, but must remain within the
-          // configured [1, max_copies] range.
-          auto old_copy_number =
-              NumberHelpers::char_to_single_digit_number(aa_sequence[aa_pos.aa_index_in_aa_string]);
-          const auto max_copy_number = p_config->get_genotype_parameters()
-                                           .get_pf_genotype_info()
-                                           .chromosome_infos[aa_pos.chromosome_id]
-                                           .get_genes()[aa_pos.gene_id]
-                                           .get_max_copies();
-          const auto proposed_copy_number =
-              p_random->random_uniform() < 0.5 ? old_copy_number - 1 : old_copy_number + 1;
-          const auto new_copy_number = std::max(1, std::min(max_copy_number, proposed_copy_number));
-          new_aa_sequence[aa_pos.aa_index_in_aa_string] =
-              NumberHelpers::single_digit_number_to_char(new_copy_number);
-        } else {
-          const auto &aa_list = p_config->get_genotype_parameters()
-                                    .get_pf_genotype_info()
-                                    .chromosome_infos[aa_pos.chromosome_id]
-                                    .get_genes()[aa_pos.gene_id]
-                                    .get_aa_positions()[aa_pos.aa_id]
-                                    .get_amino_acids();
-          // std::cout << "aa_list: [" << aa_list[0] << "," << aa_list[1] << "]" << std::endl;
-          // draw random aa id
-          auto new_aa_id = p_random->random_uniform(aa_list.size() - 1);
-          // std::cout << "pRandom->random_uniform(aa_list.size() - 1) " <<
-          // pRandom->random_uniform(aa_list.size() - 1) << std::endl;
-          auto old_aa = aa_sequence[aa_pos.aa_index_in_aa_string];
-          auto new_aa = aa_list[new_aa_id][0];
-          // std::cout << "Mutation old_aa: " << old_aa << " -> new_aa: " << new_aa << std::endl;
-          //                if (new_aa == old_aa) {
-          //                    std::cout << "old_aa: " << old_aa << " == new_aa: " << new_aa;
-          //                    new_aa = aa_list[new_aa_id + 1];
-          //                }
-          if (new_aa == old_aa) {
-            if (new_aa_id + 1 < aa_list.size()) {
-              new_aa = aa_list[new_aa_id + 1][0];
-            } else {
-              new_aa = aa_list[0][0];
-            }
+    const auto &mutation_mask = p_config->get_genotype_parameters().get_mutation_mask();
+
+    assert(aa_pos.aa_index_in_aa_string < mutation_mask.size());
+
+    if (mutation_mask[aa_pos.aa_index_in_aa_string] != '1') { continue; }
+
+    const auto p_mutation = p_random->random_flat(0.0, 1.0);
+    // std::cout << "p: " << p << " Mutation probability: " << mutation_probability_by_locus <<
+    // std::endl; std::cout << "aa_pos_id: " << aa_pos_id << " aa_pos.aa_index_in_aa_string: "
+    // << aa_pos.aa_index_in_aa_string << " aa_pos.is_copy_number: " << aa_pos.is_copy_number <<
+    // std::endl;
+    if (p_mutation < mutation_probability_by_locus) {
+      if (aa_pos.is_copy_number) {
+        // Drug-driven CNV mutation can step one copy up or down, but must remain within the
+        // configured [1, max_copies] range.
+        auto old_copy_number =
+            NumberHelpers::char_to_single_digit_number(aa_sequence[aa_pos.aa_index_in_aa_string]);
+        const auto max_copy_number = p_config->get_genotype_parameters()
+                                         .get_pf_genotype_info()
+                                         .chromosome_infos[aa_pos.chromosome_id]
+                                         .get_genes()[aa_pos.gene_id]
+                                         .get_max_copies();
+        const auto proposed_copy_number =
+            p_random->random_uniform() < 0.5 ? old_copy_number - 1 : old_copy_number + 1;
+        const auto new_copy_number = std::max(1, std::min(max_copy_number, proposed_copy_number));
+        new_aa_sequence[aa_pos.aa_index_in_aa_string] =
+            NumberHelpers::single_digit_number_to_char(new_copy_number);
+      } else {
+        const auto &aa_list = p_config->get_genotype_parameters()
+                                  .get_pf_genotype_info()
+                                  .chromosome_infos[aa_pos.chromosome_id]
+                                  .get_genes()[aa_pos.gene_id]
+                                  .get_aa_positions()[aa_pos.aa_id]
+                                  .get_amino_acids();
+        // std::cout << "aa_list: [" << aa_list[0] << "," << aa_list[1] << "]" << std::endl;
+        // draw random aa id
+        if (aa_list.size() <= 1) { continue; }
+        auto new_aa_id = p_random->random_uniform(aa_list.size() - 1);
+        // std::cout << "pRandom->random_uniform(aa_list.size() - 1) " <<
+        // pRandom->random_uniform(aa_list.size() - 1) << std::endl;
+        auto old_aa = aa_sequence[aa_pos.aa_index_in_aa_string];
+        auto new_aa = aa_list[new_aa_id][0];
+        // std::cout << "Mutation old_aa: " << old_aa << " -> new_aa: " << new_aa << std::endl;
+        //                if (new_aa == old_aa) {
+        //                    std::cout << "old_aa: " << old_aa << " == new_aa: " << new_aa;
+        //                    new_aa = aa_list[new_aa_id + 1];
+        //                }
+        if (new_aa == old_aa) {
+          if (new_aa_id + 1 < aa_list.size()) {
+            new_aa = aa_list[new_aa_id + 1][0];
+          } else {
+            new_aa = aa_list[0][0];
           }
-          new_aa_sequence[aa_pos.aa_index_in_aa_string] = new_aa;
-          // if (old_aa == 'C' && new_aa == 'Y'){
-          //   spdlog::info("{} p: {} < {} select new_aa_id: {} from [0,{}] aa_list[new_aa_id] =
-          //   aa_list[{}] = {}",
-          //             Model::get_scheduler()->current_time(), p, mutation_probability_by_locus,
-          //             new_aa_id, aa_list.size() - 1, new_aa_id, aa_list[new_aa_id]);
-          //   spdlog::info("{} Mutation {} -> {} old: {} new: {} aa_pos_id: {} aa_pos: {}",
-          //             Model::get_scheduler()->current_time(), p, mutation_probability_by_locus,
-          //             old_aa, new_aa, aa_pos_id, aa_pos.aa_index_in_aa_string);
-          // }
         }
+        new_aa_sequence[aa_pos.aa_index_in_aa_string] = new_aa;
+        // if (old_aa == 'C' && new_aa == 'Y'){
+        //   spdlog::info("{} p: {} < {} select new_aa_id: {} from [0,{}] aa_list[new_aa_id] =
+        //   aa_list[{}] = {}",
+        //             Model::get_scheduler()->current_time(), p, mutation_probability_by_locus,
+        //             new_aa_id, aa_list.size() - 1, new_aa_id, aa_list[new_aa_id]);
+        //   spdlog::info("{} Mutation {} -> {} old: {} new: {} aa_pos_id: {} aa_pos: {}",
+        //             Model::get_scheduler()->current_time(), p, mutation_probability_by_locus,
+        //             old_aa, new_aa, aa_pos_id, aa_pos.aa_index_in_aa_string);
+        // }
       }
     }
   }

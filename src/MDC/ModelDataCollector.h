@@ -1062,7 +1062,8 @@ public:
 
   void record_1_mutation(const core::LocationId &location, Genotype* from, Genotype* to);
 
-  void record_1_mutation_by_drug(const int &location, Genotype* from, Genotype* to, int drug_id);
+  void record_1_mutation_by_drug(const core::LocationId &location, Genotype* from, Genotype* to,
+                                 int drug_id);
 
   void begin_time_step();
 
@@ -1274,7 +1275,6 @@ public:
     current_number_of_mutation_events_ = value;
   }
 
-public:
   void set_recording(const bool &value) { recording_ = value; }
   [[nodiscard]] bool get_recording() const { return recording_; }
 

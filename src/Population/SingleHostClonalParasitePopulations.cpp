@@ -158,7 +158,7 @@ void SingleHostClonalParasitePopulations::apply_drug_effects_to(
     // select all locus
     // remember to use mask to turn on and off mutation location
     // for a specific time
-    Genotype* candidate_genotype = new_genotype->perform_mutation_by_drug(
+    auto* candidate_genotype = new_genotype->perform_mutation_by_drug(
         Model::get_config(), Model::get_random(), drug->drug_type(),
         Model::get_config()->get_genotype_parameters().get_mutation_probability_per_locus());
 

@@ -7,7 +7,6 @@
 #include "Parasites/Genotype.h"
 #include "Simulation/Model.h"
 #include "SingleHostClonalParasitePopulations.h"
-#include "Utils/Helpers/NumberHelpers.h"
 
 ClonalParasitePopulation::ClonalParasitePopulation(Genotype* genotype) : genotype_(genotype) {}
 
@@ -30,8 +29,8 @@ double ClonalParasitePopulation::get_current_parasite_density(const int &current
 }
 
 double ClonalParasitePopulation::get_log10_infectious_density() const {
-  if (NumberHelpers::is_equal(last_update_log10_parasite_density_, LOG_ZERO_PARASITE_DENSITY)
-      || NumberHelpers::is_equal(gametocyte_level_, 0.0))
+  if (last_update_log10_parasite_density_ == LOG_ZERO_PARASITE_DENSITY
+      || gametocyte_level_ == 0.0)
     return LOG_ZERO_PARASITE_DENSITY;
 
   return last_update_log10_parasite_density_ + log10(gametocyte_level_);
