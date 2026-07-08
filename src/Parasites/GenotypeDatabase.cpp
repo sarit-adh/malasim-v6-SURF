@@ -18,8 +18,13 @@ GenotypeDatabase::~GenotypeDatabase() {
 void GenotypeDatabase::add(std::unique_ptr<Genotype> genotype) {
   auto id = genotype->genotype_id();
   if (id >= size()) { resize(id + 1); }
+  auto* added_genotype = genotype.get();
   aa_sequence_id_map_[genotype->get_aa_sequence()] = genotype.get();
   GenotypePtrVector::operator[](id) = std::move(genotype);
+
+  for (const auto &reporter : Model::get_instance()->get_reporters()) {
+    reporter->on_genotype_added(*added_genotype);
+  }
 
   // spdlog::info("GenotypeDatabase Added genotype id: {} aa_sequence: {}", genotype->genotype_id(),
 }
@@ -95,4 +100,3 @@ double GenotypeDatabase::get_min_ec50(int drug_id) {
 
   return it->second;
 }
-

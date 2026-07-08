@@ -14,20 +14,23 @@
 // Function to populate the 'genotype' table in the database
 void SQLiteDbReporter::populate_genotype_table() {
   try {
+    if (db == nullptr) { return; }
+
     // Use the Database class to execute SQL statements
     db->execute("DELETE FROM genotype;");  // Clear the genotype table
 
-    auto* config = Model::get_config();
+    auto* genotype_db = Model::get_genotype_db();
     std::vector<std::string> batch_values;
-    batch_values.reserve(config->number_of_parasite_types());
+    batch_values.reserve(genotype_db->size());
 
-    for (auto id = 0; id < config->number_of_parasite_types(); id++) {
-      auto* genotype = Model::get_genotype_db()->at(id);
+    for (auto id = 0; id < genotype_db->size(); id++) {
+      auto* genotype = genotype_db->at(id);
+      if (genotype == nullptr) { continue; }
       // Escape single quotes in genotype string if needed
       std::string genotype_str = genotype->get_aa_sequence();
       StringHelpers::replace_all(genotype_str, "'", "''");
 
-      batch_values.push_back(fmt::format("({}, '{}')", id, genotype_str));
+      batch_values.push_back(fmt::format("({}, '{}')", genotype->genotype_id(), genotype_str));
     }
 
     // Insert in batches
@@ -36,6 +39,21 @@ void SQLiteDbReporter::populate_genotype_table() {
 
   } catch (const std::exception &ex) { spdlog::error("{}:\n{}", __FUNCTION__, ex.what()); }
 }
+
+void SQLiteDbReporter::insert_genotype(const Genotype& genotype) {
+  try {
+    if (db == nullptr) { return; }
+
+    std::string genotype_str = genotype.get_aa_sequence();
+    StringHelpers::replace_all(genotype_str, "'", "''");
+    db->execute(fmt::format("INSERT OR REPLACE INTO genotype (id, name) VALUES ({}, '{}');",
+                            genotype.genotype_id(), genotype_str));
+  } catch (const std::exception &ex) {
+    spdlog::error("{}:\n{}", __FUNCTION__, ex.what());
+  }
+}
+
+void SQLiteDbReporter::on_genotype_added(const Genotype& genotype) { insert_genotype(genotype); }
 
 // Function to populate the 'admin_level' table in the database
 void SQLiteDbReporter::populate_admin_level_table() {
@@ -488,4 +506,3 @@ std::string SQLiteDbReporter::get_genome_table_name(int level_id) const {
 
 const std::string insert_location_admin_map_query_ =
     "INSERT INTO location_admin_map (location_id, admin_level_id, admin_unit_id) VALUES (?, ?, ?);";
-

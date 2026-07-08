@@ -83,31 +83,6 @@ population_demographic:
 # ---------------------------------------------------------------
 spatial_settings:
   mode: "location_based"
-  grid_based:
-    # Approximate national age distribution (to be updated with specific country data)
-    age_distribution_by_location: [[0.0423, 0.0423, 0.0423, 0.0423, 0.0349, 0.0349, 0.0349, 0.0349, 0.0349, 0.0317, 0.0317, 0.0317, 0.0317, 0.0317, 0.1743, 0.1132, 0.0832, 0.0601, 0.0341, 0.0331, 0.0]]
-    # Adjusted population raster to account for burn-in up to 2009 start
-    population_raster: "sample_inputs/single_loc/dev_init_pop.asc"
-
-    administrative_boundaries:
-      - name: "district" # First admin level
-        raster: "sample_inputs/single_loc/dev_district.asc"
-
-    p_treatment_under_5_raster: "sample_inputs/single_loc/dev_treatment.asc"
-    p_treatment_over_5_raster: "sample_inputs/single_loc/dev_treatment.asc"
-
-    beta_raster: "sample_inputs/single_loc/dev_beta.asc"
-
-    # Raster file containing the seasonal values,
-    # use this only when using raster in seasonal equation
-    ecoclimatic_raster: "sample_inputs/single_loc/dev_ecozone.asc"
-
-    #Travel (for Burkina Faso)
-    travel_raster: "sample_inputs/single_loc/dev_travel.asc"
-
-    # Cell size used by raster, in square kilometers
-    cell_size: 5
-
   location_based:
     # Approximate national age distribution (to be updated with specific country data)
     age_distribution_by_location:
@@ -136,7 +111,7 @@ spatial_settings:
 # ---------------------------------------------------------------
 seasonality_settings:
   # Seasonality of malaria (to be updated with specific country data)
-  enable: true
+  enable: false
   mode: "pattern"
   pattern:
     admin_level: "district"
@@ -259,12 +234,14 @@ genotype_parameters:
 
   # Daily probability that a parasite will mutate at a given locus when drug concentration is not zero
   mutation_probability_per_locus: 0.001
+  default_cnv_reversion_multiplier: 0.5
 
   pf_genotype_info:
     - chromosome: 5
       genes:
         - name: "Pfmdr1"
           max_copies: 2
+          cnv_reversion_multiplier: 0.5
           # copy number variation cost of resistances
           cnv_daily_crs: [0, 0.0005]
           cnv_multiplicative_effect_on_EC50:
@@ -446,6 +423,7 @@ genotype_parameters:
       genes:
         - name: "Pfplasmepsin"
           max_copies: 2
+          cnv_reversion_multiplier: 0.5
           cnv_daily_crs: [0, 0.0005]
           cnv_multiplicative_effect_on_EC50:
             - drug_id: 3
