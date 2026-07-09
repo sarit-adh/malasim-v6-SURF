@@ -57,7 +57,7 @@ public:
   Genotype* modify_genotype_allele(const std::vector<std::tuple<int, int, char>> &alleles,
                                    Config* p_config) const;
 
-  [[nodiscard]] std::string get_aa_sequence() const;
+  [[nodiscard]] const std::string &get_aa_sequence() const;
 
   bool is_valid(const GenotypeParameters::PfGenotypeInfo &gene_info);
 

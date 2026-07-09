@@ -6,6 +6,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "IConfigData.h"
@@ -206,6 +207,8 @@ public:
     struct CnvGeneIndex {
       int chromosome_index = -1;
       int gene_index = -1;
+      int aa_sequence_index = -1;
+      std::vector<int> selecting_drug_ids;
     };
 
     std::vector<ChromosomeInfo> chromosome_infos = std::vector<ChromosomeInfo>(14);
@@ -215,8 +218,22 @@ public:
       for (int chromosome_i = 0; chromosome_i < chromosome_infos.size(); ++chromosome_i) {
         const auto &genes = chromosome_infos[chromosome_i].get_genes();
         for (int gene_i = 0; gene_i < genes.size(); ++gene_i) {
-          if (genes[gene_i].get_max_copies() > 1) {
-            cnv_gene_indices_.push_back({chromosome_i, gene_i});
+          const auto &gene = genes[gene_i];
+          if (gene.get_max_copies() > 1) {
+            std::vector<int> selecting_drug_ids;
+            for (const auto &cnv_effect : gene.get_cnv_multiplicative_effect_on_EC50()) {
+              const auto &factors = cnv_effect.get_factors();
+              if (factors.size() > 1 && factors[1] > factors[0] && factors[1] > 1.0) {
+                selecting_drug_ids.push_back(cnv_effect.get_drug_id());
+              }
+            }
+            cnv_gene_indices_.push_back({
+                chromosome_i,
+                gene_i,
+                calculate_aa_pos(chromosome_i, gene_i,
+                                 static_cast<int>(gene.get_aa_positions().size())),
+                std::move(selecting_drug_ids),
+            });
           }
         }
       }

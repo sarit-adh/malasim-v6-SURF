@@ -15,6 +15,8 @@
 
 using std::ranges::any_of;
 
+double log10_sum(double log10_a, double log10_b);
+
 SingleHostClonalParasitePopulations::SingleHostClonalParasitePopulations(Person* person)
     : person_(person) {}
 
@@ -113,6 +115,37 @@ void SingleHostClonalParasitePopulations::update_with_drug_effects(DrugsInBlood*
   }
 }
 
+void SingleHostClonalParasitePopulations::update_with_drug_effects_and_clear_cured(
+    DrugsInBlood* drugs_in_blood, double cured_threshold) {
+  if (drugs_in_blood == nullptr) { throw std::invalid_argument("Drugs in blood is nullptr"); }
+
+  log10_total_infectious_density_ = ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY;
+
+  size_t p_index = 0;
+  while (p_index < parasites_.size()) {
+    auto &blood_parasite = parasites_[p_index];
+    if (blood_parasite == nullptr) {
+      throw std::runtime_error(
+          "Parasite is nullptr in "
+          "SingleHostClonalParasitePopulations::update_with_drug_effects_and_clear_cured");
+    }
+
+    blood_parasite->update();
+    apply_drug_effects_to(blood_parasite.get(), drugs_in_blood);
+    apply_cnv_reversion_to(blood_parasite.get(), drugs_in_blood);
+
+    if (blood_parasite->last_update_log10_parasite_density() <= cured_threshold) {
+      remove(p_index);
+      continue;
+    }
+
+    log10_total_infectious_density_ =
+        log10_sum(log10_total_infectious_density_,
+                  blood_parasite->get_log10_infectious_density());
+    ++p_index;
+  }
+}
+
 double log10_sum(double log10_a, double log10_b) {
   const double zero = ClonalParasitePopulation::LOG_ZERO_PARASITE_DENSITY;
 
@@ -151,6 +184,14 @@ void SingleHostClonalParasitePopulations::apply_drug_effects_to(
   if (drugs_in_blood == nullptr) { throw std::invalid_argument("Drugs in blood is nullptr"); }
   if (drugs_in_blood->size() == 0) { return; }
 
+  auto* config = Model::get_config();
+  auto* random = Model::get_random();
+  const auto mutation_probability =
+      config->get_genotype_parameters().get_mutation_probability_per_locus();
+  const auto log_parasite_density_cured = config->get_parasite_parameters()
+                                              .get_parasite_density_levels()
+                                              .get_log_parasite_density_cured();
+
   auto* new_genotype = blood_parasite->genotype();
 
   double percent_parasite_remove = 0;
@@ -159,8 +200,7 @@ void SingleHostClonalParasitePopulations::apply_drug_effects_to(
     // remember to use mask to turn on and off mutation location
     // for a specific time
     auto* candidate_genotype = new_genotype->perform_mutation_by_drug(
-        Model::get_config(), Model::get_random(), drug->drug_type(),
-        Model::get_config()->get_genotype_parameters().get_mutation_probability_per_locus());
+        config, random, drug->drug_type(), mutation_probability);
 
     if (candidate_genotype->get_EC50_power_n(drug->drug_type())
         > new_genotype->get_EC50_power_n(drug->drug_type())) {
@@ -196,11 +236,7 @@ void SingleHostClonalParasitePopulations::apply_drug_effects_to(
     percent_parasite_remove = percent_parasite_remove + p_temp - (percent_parasite_remove * p_temp);
   }
   if (percent_parasite_remove > 0) {
-    blood_parasite->perform_drug_action(percent_parasite_remove,
-                                        Model::get_config()
-                                            ->get_parasite_parameters()
-                                            .get_parasite_density_levels()
-                                            .get_log_parasite_density_cured());
+    blood_parasite->perform_drug_action(percent_parasite_remove, log_parasite_density_cured);
   }
 }
 

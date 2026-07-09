@@ -73,6 +73,9 @@ public:
 
   void update_with_drug_effects(DrugsInBlood* drugs_in_blood);
 
+  void update_with_drug_effects_and_clear_cured(DrugsInBlood* drugs_in_blood,
+                                                double cured_threshold);
+
   void clear_cured_parasites(double cured_threshold);
 
   void clear();

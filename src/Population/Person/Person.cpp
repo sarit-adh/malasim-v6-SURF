@@ -517,8 +517,12 @@ void Person::update() {
   // update all drugs concentration
   drugs_in_blood_->update();
 
-  // Update parasite density, drug activity, and CNV reversion in one parasite pass.
-  all_clonal_parasite_populations_->update_with_drug_effects(drugs_in_blood_.get());
+  // Update parasite density, drug activity, CNV reversion, and cured cleanup in one parasite pass.
+  all_clonal_parasite_populations_->update_with_drug_effects_and_clear_cured(
+      drugs_in_blood_.get(), Model::get_config()
+                                ->get_parasite_parameters()
+                                .get_parasite_density_levels()
+                                .get_log_parasite_density_cured());
 
   immune_system_->update();
 
@@ -545,11 +549,6 @@ void Person::update_relative_biting_rate() {
 void Person::update_current_state() {
   // clear drugs <=0.1
   drugs_in_blood_->clear_cut_off_drugs();
-  // clear cured parasite
-  all_clonal_parasite_populations_->clear_cured_parasites(Model::get_config()
-                                                              ->get_parasite_parameters()
-                                                              .get_parasite_density_levels()
-                                                              .get_log_parasite_density_cured());
 
   if (all_clonal_parasite_populations_->size() == 0) {
     change_state_when_no_parasite_in_blood();

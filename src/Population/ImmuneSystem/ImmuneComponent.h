@@ -3,6 +3,8 @@
 
 // #include "ObjectPool.h"
 #include <cstddef>
+
+#include "Core/types.h"
 class ImmuneSystem;
 
 class Model;
@@ -32,9 +34,13 @@ public:
 
   [[nodiscard]] virtual double get_current_value();
 
-  [[nodiscard]] virtual double get_decay_rate(const int &age) const = 0;
+  [[nodiscard]] virtual double get_decay_rate(core::Age age) const = 0;
 
-  [[nodiscard]] virtual double get_acquire_rate(const int &age) const = 0;
+  [[nodiscard]] virtual double get_acquire_rate(core::Age age) const = 0;
+
+  [[nodiscard]] virtual double get_one_day_decay_factor(core::Age age) const;
+
+  [[nodiscard]] virtual double get_one_day_acquire_factor(core::Age age) const;
 
 private:
   ImmuneSystem* immune_system_{nullptr};

@@ -2,6 +2,8 @@
 #define IMMUNESYSTEMPARAMETERS_H
 #include <spdlog/spdlog.h>
 
+#include <cmath>
+
 #include "IConfigData.h"
 #include "Utils/Helpers/NumberHelpers.h"
 
@@ -106,6 +108,7 @@ public:
     // implement inflation rate
     double acR = acquire_rate;
     acquire_rate_by_age.clear();
+    acquire_rate_by_age_one_day_factor.clear();
     for (int age = 0; age <= 80; age++) {
       double factor = 1;
       if (age < age_mature_immunity) {
@@ -115,11 +118,16 @@ public:
         factor = pow(factor, factor_effect_age_mature_immunity);
       }
 
-      acquire_rate_by_age.push_back(factor * acR);
+      const auto age_acquire_rate = factor * acR;
+      acquire_rate_by_age.push_back(age_acquire_rate);
+      acquire_rate_by_age_one_day_factor.push_back(std::exp(-age_acquire_rate));
 
       acR *= 1 + immune_inflation_rate;
     }
     assert(acquire_rate_by_age.size() == 81);
+    assert(acquire_rate_by_age_one_day_factor.size() == 81);
+
+    decay_rate_one_day_factor = std::exp(-decay_rate);
 
     c_min = pow(10, -(log_parasite_density_asymptomatic - log_parasite_density_cured)
                         / duration_for_fully_immune);
@@ -148,7 +156,9 @@ private:
 public:
   double acquire_rate{-1};
   std::vector<double> acquire_rate_by_age;
+  std::vector<double> acquire_rate_by_age_one_day_factor;
   double decay_rate{-1};
+  double decay_rate_one_day_factor{-1};
 
   double duration_for_fully_immune{-1};
   double duration_for_naive{-1};

@@ -10,6 +10,9 @@
 #include "Population/DrugsInBlood.h"
 #include "Population/Person/Person.h"
 #include "Population/SingleHostClonalParasitePopulations.h"
+#include "Simulation/Model.h"
+#include "Utils/Cli.h"
+#include "fixtures/TestFileGenerators.h"
 
 // Mock Person class
 class MockPerson : public Person {
@@ -220,6 +223,57 @@ TEST_F(SingleHostClonalParasitePopulationsTest, UpdateWithDrugEffectsEmptyPopula
 
 TEST_F(SingleHostClonalParasitePopulationsTest, UpdateWithDrugEffectsNullDrugsThrows) {
   EXPECT_THROW(populations->update_with_drug_effects(nullptr), std::invalid_argument);
+}
+
+TEST_F(SingleHostClonalParasitePopulationsTest,
+       UpdateWithDrugEffectsAndClearCuredMatchesSeparatePassesWithoutDrugs) {
+  test_fixtures::setup_test_environment("test_input.yml");
+  Model::get_instance()->release();
+  utils::Cli::MaSimAppInput cli_input;
+  cli_input.input_path = "test_input.yml";
+  Model::set_cli_input(cli_input);
+  Model::get_instance()->initialize();
+
+  struct Cleanup {
+    ~Cleanup() {
+      Model::get_instance()->release();
+      test_fixtures::cleanup_test_files();
+    }
+  } cleanup;
+
+  const auto &parasite_info = Model::get_config()
+                                  ->get_genotype_parameters()
+                                  .get_initial_parasite_info_raw()[0]
+                                  .get_parasite_info()[0];
+  auto* real_genotype = Model::get_genotype_db()->get_genotype(parasite_info.get_aa_sequence());
+  auto separate_passes = std::make_unique<SingleHostClonalParasitePopulations>(person.get());
+  auto combined_pass = std::make_unique<SingleHostClonalParasitePopulations>(person.get());
+  auto drugs_in_blood = std::make_unique<DrugsInBlood>();
+
+  for (auto* target : {separate_passes.get(), combined_pass.get()}) {
+    auto parasite1 = std::make_unique<ClonalParasitePopulation>(real_genotype);
+    parasite1->set_last_update_log10_parasite_density(5.0);
+    parasite1->set_gametocyte_level(1.0);
+    target->add(std::move(parasite1));
+
+    auto parasite2 = std::make_unique<ClonalParasitePopulation>(real_genotype);
+    parasite2->set_last_update_log10_parasite_density(-1111.0);
+    parasite2->set_gametocyte_level(1.0);
+    target->add(std::move(parasite2));
+
+    auto parasite3 = std::make_unique<ClonalParasitePopulation>(real_genotype);
+    parasite3->set_last_update_log10_parasite_density(3.0);
+    parasite3->set_gametocyte_level(1.0);
+    target->add(std::move(parasite3));
+  }
+
+  separate_passes->update_with_drug_effects(drugs_in_blood.get());
+  separate_passes->clear_cured_parasites(-1111.0);
+  combined_pass->update_with_drug_effects_and_clear_cured(drugs_in_blood.get(), -1111.0);
+
+  EXPECT_EQ(combined_pass->size(), separate_passes->size());
+  EXPECT_DOUBLE_EQ(combined_pass->log10_total_infectious_density(),
+                   separate_passes->log10_total_infectious_density());
 }
 
 TEST_F(SingleHostClonalParasitePopulationsTest, Clear) {

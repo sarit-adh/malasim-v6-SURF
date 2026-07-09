@@ -1,5 +1,6 @@
 #include <yaml-cpp/yaml.h>
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -306,4 +307,37 @@ TEST_F(GenotypeTest, PerformMutationByDrugAtMaximumCopyNumberStepsDown) {
                                                      Model::get_drug_db()->at(1).get(), 1.0);
 
   EXPECT_EQ(get_copy_number(mutated, 4, 0), 2);
+}
+
+TEST_F(GenotypeTest, PerformMutationByDrugWithoutMutationReturnsSameGenotype) {
+  auto* genotype = build_multi_copy_genotype(2, 1);
+  ASSERT_NE(genotype, nullptr);
+  const auto genotype_count = Model::get_genotype_db()->size();
+  FixedRandom mock_random(1.0, 0.0);
+
+  auto* mutated = genotype->perform_mutation_by_drug(Model::get_config(), &mock_random,
+                                                     Model::get_drug_db()->at(1).get(), 1.0);
+
+  EXPECT_EQ(mutated, genotype);
+  EXPECT_EQ(Model::get_genotype_db()->size(), genotype_count);
+}
+
+TEST_F(GenotypeTest, CnvGeneIndicesCacheSequenceIndexAndSelectingDrugs) {
+  const auto &pf_genotype_info =
+      Model::get_config()->get_genotype_parameters().get_pf_genotype_info();
+  const auto &cnv_gene_indices = pf_genotype_info.get_cnv_gene_indices();
+
+  const auto pfmdr1 = std::ranges::find_if(cnv_gene_indices, [](const auto &cnv_gene_index) {
+    return cnv_gene_index.chromosome_index == 4 && cnv_gene_index.gene_index == 0;
+  });
+
+  ASSERT_NE(pfmdr1, cnv_gene_indices.end());
+  EXPECT_EQ(pfmdr1->aa_sequence_index,
+            pf_genotype_info.calculate_aa_pos(
+                4, 0, static_cast<int>(pf_genotype_info.chromosome_infos[4]
+                                           .get_genes()[0]
+                                           .get_aa_positions()
+                                           .size())));
+  EXPECT_NE(std::ranges::find(pfmdr1->selecting_drug_ids, 1),
+            pfmdr1->selecting_drug_ids.end());
 }

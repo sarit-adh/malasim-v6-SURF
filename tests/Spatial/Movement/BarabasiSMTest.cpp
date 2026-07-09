@@ -5,7 +5,6 @@
 #include "Simulation/Model.h"
 #include "Spatial/Movement/BarabasiSM.hxx"
 #include "Utils/Cli.h"
-#include "Utils/TypeDef.h"
 #include "fixtures/TestFileGenerators.h"
 
 class BarabasiSMTest : public ::testing::Test {
@@ -71,10 +70,10 @@ TEST_F(BarabasiSMTest, CalculateMovementPattern) {
       from_location, number_of_locations, relative_distance_vector, residents_by_location);
 
   // Verify movement pattern follows the formula: P(r_g) = (r_g + r_g^0)^{-\beta_r}exp(-r_g/\kappa)
-  double expected_movement1 = pow((relative_distance_vector[1] + r_g_0), -beta_r)
-                              * exp(-relative_distance_vector[1] / kappa);
-  double expected_movement2 = pow((relative_distance_vector[2] + r_g_0), -beta_r)
-                              * exp(-relative_distance_vector[2] / kappa);
+  double expected_movement1 = std::pow((relative_distance_vector[1] + r_g_0), -beta_r)
+                              * std::exp(-relative_distance_vector[1] / kappa);
+  double expected_movement2 = std::pow((relative_distance_vector[2] + r_g_0), -beta_r)
+                              * std::exp(-relative_distance_vector[2] / kappa);
 
   EXPECT_NEAR(movement[1], expected_movement1, 1e-10);
   EXPECT_NEAR(movement[2], expected_movement2, 1e-10);

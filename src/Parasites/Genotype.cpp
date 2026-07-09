@@ -11,18 +11,19 @@
 
 namespace {
 
-bool drug_selects_for_double_copy(const GenotypeParameters::GeneInfo &gene_info,
-                                  DrugsInBlood* drugs_in_blood) {
-  if (drugs_in_blood == nullptr || drugs_in_blood->size() == 0) { return false; }
+bool drug_selects_for_double_copy(
+    const GenotypeParameters::PfGenotypeInfo::CnvGeneIndex &cnv_gene_index,
+    DrugsInBlood* drugs_in_blood) {
+  if (drugs_in_blood == nullptr || drugs_in_blood->size() == 0
+      || cnv_gene_index.selecting_drug_ids.empty()) {
+    return false;
+  }
 
-  for (const auto &[drug_id, drug] : *drugs_in_blood) {
+  for (const auto drug_id : cnv_gene_index.selecting_drug_ids) {
+    if (!drugs_in_blood->contains(drug_id)) { continue; }
+    auto* drug = drugs_in_blood->at(drug_id);
     if (drug == nullptr || drug->last_update_value() <= 0) { continue; }
-
-    for (const auto &cnv_effect : gene_info.get_cnv_multiplicative_effect_on_EC50()) {
-      if (cnv_effect.get_drug_id() != drug_id) { continue; }
-      const auto &factors = cnv_effect.get_factors();
-      if (factors.size() > 1 && factors[1] > factors[0] && factors[1] > 1.0) { return true; }
-    }
+    return true;
   }
 
   return false;
@@ -107,7 +108,7 @@ std::ostream &operator<<(std::ostream &os, Genotype &genotype) {
   return os;
 }
 
-std::string Genotype::get_aa_sequence() const { return aa_sequence; }
+const std::string &Genotype::get_aa_sequence() const { return aa_sequence; }
 
 bool Genotype::is_valid(const GenotypeParameters::PfGenotypeInfo &gene_info) {
   for (int chromosome_i = 0; chromosome_i < 14; ++chromosome_i) {
@@ -305,10 +306,23 @@ void Genotype::calculate_EC50_power_n(const GenotypeParameters::PfGenotypeInfo &
 Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_random,
                                              DrugType* p_drug_type,
                                              double mutation_probability_by_locus) const {
-  std::string new_aa_sequence{aa_sequence};
-  for (const auto &aa_pos : p_drug_type->resistant_aa_locations()) {
-    const auto &mutation_mask = p_config->get_genotype_parameters().get_mutation_mask();
+  std::string new_aa_sequence;
+  auto mutated = false;
+  auto set_mutated_aa = [&](int aa_index, char value) {
+    const auto current_value = mutated ? new_aa_sequence[aa_index] : aa_sequence[aa_index];
+    if (current_value == value) { return; }
+    if (!mutated) {
+      new_aa_sequence = aa_sequence;
+      mutated = true;
+    }
+    new_aa_sequence[aa_index] = value;
+  };
 
+  const auto &genotype_parameters = p_config->get_genotype_parameters();
+  const auto &mutation_mask = genotype_parameters.get_mutation_mask();
+  const auto &pf_genotype_info = genotype_parameters.get_pf_genotype_info();
+
+  for (const auto &aa_pos : p_drug_type->resistant_aa_locations()) {
     assert(aa_pos.aa_index_in_aa_string < mutation_mask.size());
 
     if (!mutation_mask[aa_pos.aa_index_in_aa_string]) { continue; }
@@ -324,20 +338,16 @@ Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_
         // configured [1, max_copies] range.
         auto old_copy_number =
             NumberHelpers::char_to_single_digit_number(aa_sequence[aa_pos.aa_index_in_aa_string]);
-        const auto max_copy_number = p_config->get_genotype_parameters()
-                                         .get_pf_genotype_info()
-                                         .chromosome_infos[aa_pos.chromosome_id]
+        const auto max_copy_number = pf_genotype_info.chromosome_infos[aa_pos.chromosome_id]
                                          .get_genes()[aa_pos.gene_id]
                                          .get_max_copies();
         const auto proposed_copy_number =
             p_random->random_uniform() < 0.5 ? old_copy_number - 1 : old_copy_number + 1;
         const auto new_copy_number = std::max(1, std::min(max_copy_number, proposed_copy_number));
-        new_aa_sequence[aa_pos.aa_index_in_aa_string] =
-            NumberHelpers::single_digit_number_to_char(new_copy_number);
+        set_mutated_aa(aa_pos.aa_index_in_aa_string,
+                       NumberHelpers::single_digit_number_to_char(new_copy_number));
       } else {
-        const auto &aa_list = p_config->get_genotype_parameters()
-                                  .get_pf_genotype_info()
-                                  .chromosome_infos[aa_pos.chromosome_id]
+        const auto &aa_list = pf_genotype_info.chromosome_infos[aa_pos.chromosome_id]
                                   .get_genes()[aa_pos.gene_id]
                                   .get_aa_positions()[aa_pos.aa_id]
                                   .get_amino_acids();
@@ -361,7 +371,7 @@ Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_
             new_aa = aa_list[0][0];
           }
         }
-        new_aa_sequence[aa_pos.aa_index_in_aa_string] = new_aa;
+        set_mutated_aa(aa_pos.aa_index_in_aa_string, new_aa);
         // if (old_aa == 'C' && new_aa == 'Y'){
         //   spdlog::info("{} p: {} < {} select new_aa_id: {} from [0,{}] aa_list[new_aa_id] =
         //   aa_list[{}] = {}",
@@ -374,6 +384,7 @@ Genotype* Genotype::perform_mutation_by_drug(Config* p_config, utils::Random* p_
       }
     }
   }
+  if (!mutated) { return const_cast<Genotype*>(this); }
   // get genotype pointer from gene database based on aa sequence
   return Model::get_genotype_db()->get_genotype(new_aa_sequence);
 }
@@ -407,7 +418,7 @@ Genotype* Genotype::perform_cnv_reversion(Config* p_config, utils::Random* p_ran
     const auto old_copy_number = NumberHelpers::char_to_single_digit_number(gene_sequence.back());
     if (old_copy_number <= 1) { continue; }
     // Keep the extra copy while any active drug exposure still makes copy 2 more favorable.
-    if (drug_selects_for_double_copy(gene_info, drugs_in_blood)) { continue; }
+    if (drug_selects_for_double_copy(cnv_gene_index, drugs_in_blood)) { continue; }
 
     // Iterate only CNV-capable genes here; the genotype structure is static across the run, so
     // the configuration precomputes this target list once instead of rescanning all genes.
@@ -421,9 +432,7 @@ Genotype* Genotype::perform_cnv_reversion(Config* p_config, utils::Random* p_ran
         new_aa_sequence = aa_sequence;
         mutated = true;
       }
-      const auto copy_number_index = pf_genotype_info.calculate_aa_pos(
-          chromosome_i, gene_i, static_cast<int>(gene_info.get_aa_positions().size()));
-      new_aa_sequence[copy_number_index] =
+      new_aa_sequence[cnv_gene_index.aa_sequence_index] =
           NumberHelpers::single_digit_number_to_char(std::max(1, old_copy_number - 1));
     }
   }

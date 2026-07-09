@@ -1,6 +1,7 @@
 #ifndef INFANTIMMUNECOMPONENT_H
 #define INFANTIMMUNECOMPONENT_H
 
+#include "Core/types.h"
 #include "ImmuneComponent.h"
 
 class InfantImmuneComponent : public ImmuneComponent {
@@ -15,9 +16,12 @@ public:
   // InfantImmuneComponent(const InfantImmuneComponent& orig);
   ~InfantImmuneComponent() override;
 
-  [[nodiscard]] double get_decay_rate(const int &age) const override;
+  [[nodiscard]] double get_decay_rate(core::Age age) const override;
 
-  [[nodiscard]] double get_acquire_rate(const int &age) const override;
+  [[nodiscard]] double get_acquire_rate(core::Age age) const override;
+
+  [[nodiscard]] double get_one_day_acquire_factor(core::Age age) const override;
+  [[nodiscard]] double get_one_day_decay_factor(core::Age age) const override;
 
   [[nodiscard]] double get_current_value() override;
 };

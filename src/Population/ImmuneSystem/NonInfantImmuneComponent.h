@@ -15,12 +15,15 @@ public:
   // NonInfantImmuneComponent(const NonInfantImmuneComponent& orig);
   ~NonInfantImmuneComponent() override;
 
-  [[nodiscard]] double get_decay_rate(const int &age) const override;
+  [[nodiscard]] double get_decay_rate(core::Age age) const override;
 
-  [[nodiscard]] double get_acquire_rate(const int &age) const override;
+  [[nodiscard]] double get_acquire_rate(core::Age age) const override;
+
+  [[nodiscard]] double get_one_day_decay_factor(core::Age age) const override;
+
+  [[nodiscard]] double get_one_day_acquire_factor(core::Age age) const override;
 
 private:
 };
 
 #endif /* NONINFANTIMMUNECOMPONENT */
-
