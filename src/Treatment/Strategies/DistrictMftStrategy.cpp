@@ -19,7 +19,7 @@ DistrictMftStrategy::DistrictMftStrategy() : IStrategy("DistrictMFT", StrategyTy
   // Size the map to accommodate either 0-based or 1-based district IDs
   // Pre-populate map with nullptr entries for all possible district IDs
   auto vector_size = Model::get_spatial_data()->get_boundary("district")->max_unit_id + 1;
-  for (int i = 0; i < vector_size; i++) { district_strategies[i] = nullptr; }
+  for (int i = 0; i < vector_size; i++) { district_strategies_[i] = nullptr; }
 }
 
 void DistrictMftStrategy::add_therapy(Therapy* therapy) {
@@ -29,25 +29,25 @@ void DistrictMftStrategy::add_therapy(Therapy* therapy) {
 void DistrictMftStrategy::set_district_strategy(int district,
                                                 std::unique_ptr<MftStrategy> strategy) {
   // Validate district ID is within bounds
-  if (district < 0 || district >= district_strategies.size()) {
+  if (district < 0 || district >= district_strategies_.size()) {
     throw std::out_of_range(fmt::format("District ID {} is out of valid range [0, {}]", district,
-                                        district_strategies.size() - 1));
+                                        district_strategies_.size() - 1));
   }
 
   // Check if district already has a strategy assigned
-  if (district_strategies[district] != nullptr) {
+  if (district_strategies_[district] != nullptr) {
     throw std::runtime_error(
         fmt::format("District {} already has an MFT strategy assigned", district));
   }
 
   // Move the unique_ptr to our map
-  district_strategies[district] = std::move(strategy);
+  district_strategies_[district] = std::move(strategy);
 }
 
 Therapy* DistrictMftStrategy::get_therapy(Person* person) {
   // Resolve the MFT for this district
   auto district = Model::get_spatial_data()->get_admin_unit("district", person->get_location());
-  auto* mft = district_strategies[district].get();
+  auto* mft = district_strategies_[district].get();
 
   // Select the therapy to give the individual
   auto pr = Model::get_random()->random_flat(0.0, 1.0);

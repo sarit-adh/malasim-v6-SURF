@@ -1,7 +1,10 @@
 #ifndef STRATEGIES_MFTAGEBASED_H
 #define STRATEGIES_MFTAGEBASED_H
 
+#include <vector>
+
 #include "Treatment/Strategies/IStrategy.h"
+
 class MFTAgeBasedStrategy : public IStrategy {
 public:
   std::vector<Therapy*> therapy_list;

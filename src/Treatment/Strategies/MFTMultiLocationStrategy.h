@@ -5,14 +5,14 @@
 #include "Utils/TypeDef.h"
 
 class MFTMultiLocationStrategy : public IStrategy {
-  //disallow copy and assign and move
+public:
+  // disallow copy and assign and move
   MFTMultiLocationStrategy(const MFTMultiLocationStrategy &) = delete;
   void operator=(const MFTMultiLocationStrategy &) = delete;
   MFTMultiLocationStrategy(MFTMultiLocationStrategy &&) = delete;
   MFTMultiLocationStrategy &operator=(MFTMultiLocationStrategy &&) = delete;
 
- public:
-  std::vector<Therapy *> therapy_list;
+  std::vector<Therapy*> therapy_list;
   // DoubleVector2 distribution_by_location;
   DoubleVector2 distribution;
   DoubleVector2 start_distribution;
@@ -25,18 +25,17 @@ class MFTMultiLocationStrategy : public IStrategy {
   //    MFTStrategy(const MFTStrategy& orig);
   ~MFTMultiLocationStrategy() override;
 
-  void add_therapy(Therapy *therapy) override;
+  void add_therapy(Therapy* therapy) override;
 
-  Therapy *get_therapy(Person *person) override;
+  Therapy* get_therapy(Person* person) override;
 
-  std::string to_string() const override;
+  [[nodiscard]] std::string to_string() const override;
 
   void update_end_of_time_step() override;
 
   void adjust_started_time_point(const int &current_time) override;
 
   void monthly_update() override;
-
 };
 
-#endif //POMS_MFTDIFFERENTDISTRIBUTIONBYLOCATIONSTRATEGY_H
+#endif  // POMS_MFTDIFFERENTDISTRIBUTIONBYLOCATIONSTRATEGY_H

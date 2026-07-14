@@ -1,6 +1,8 @@
 #ifndef NESTEDMFTSTRATEGY_H
 #define NESTEDMFTSTRATEGY_H
 
+#include <vector>
+
 #include "IStrategy.h"
 
 class NestedMFTStrategy : public IStrategy {
