@@ -1,6 +1,7 @@
 #include "StrategyBuilder.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "AdaptiveCyclingStrategy.h"
 #include "CyclingStrategy.h"
@@ -13,6 +14,8 @@
 #include "NestedMFTMultiLocationStrategy.h"
 #include "NestedMFTStrategy.h"
 #include "NovelDrugIntroductionStrategy.h"
+#include "PublicPrivateMultiLocationStrategy.h"
+#include "PublicPrivateStrategy.h"
 #include "SFTStrategy.h"
 #include "Simulation/Model.h"
 
@@ -45,10 +48,102 @@ std::unique_ptr<IStrategy> StrategyBuilder::build(const YAML::Node &ns, const in
       return build_district_mft_strategy(ns, strategy_id);
     case IStrategy::MFTAgeBased:
       return build_mft_age_based_strategy(ns, strategy_id);
+    case IStrategy::PublicPrivate:
+      return build_public_private_strategy(ns, strategy_id);
+    case IStrategy::PublicPrivateMultiLocation:
+      return build_public_private_multi_location_strategy(ns, strategy_id);
     default:
       return nullptr;
   }
 }
+
+namespace {
+
+double read_public_share(const YAML::Node &node, const char* field_name) {
+  if (!node[field_name]) {
+    throw std::invalid_argument(std::string("Missing required strategy field: ") + field_name);
+  }
+  const auto share = node[field_name].as<double>();
+  if (!std::isfinite(share) || share < 0.0 || share > 1.0) {
+    throw std::invalid_argument(std::string(field_name) + " must be finite and in [0,1]");
+  }
+  return share;
+}
+
+IStrategy* read_child_strategy(const YAML::Node &node, const char* field_name,
+                               const int strategy_id) {
+  if (!node[field_name]) {
+    throw std::invalid_argument(std::string("Missing required strategy field: ") + field_name);
+  }
+  const auto child_id = node[field_name].as<int>();
+  if (child_id < 0 || child_id >= strategy_id
+      || static_cast<std::size_t>(child_id) >= Model::get_strategy_db().size()) {
+    throw std::invalid_argument(std::string(field_name)
+                                + " must reference a previously constructed strategy");
+  }
+  return Model::get_strategy_db()[child_id].get();
+}
+
+int read_peak_after(const YAML::Node &node) {
+  if (!node["peak_after"]) {
+    throw std::invalid_argument("Missing required strategy field: peak_after");
+  }
+  const auto peak_after = node["peak_after"].as<int>();
+  if (peak_after < 0) { throw std::invalid_argument("peak_after must be non-negative"); }
+  return peak_after;
+}
+
+DoubleVector read_location_shares(const YAML::Node &node, const char* field_name,
+                                  const int number_of_locations) {
+  if (!node[field_name] || !node[field_name].IsSequence()) {
+    throw std::invalid_argument(std::string("Missing required strategy sequence: ") + field_name);
+  }
+  if (node[field_name].size() != static_cast<std::size_t>(number_of_locations)) {
+    throw std::invalid_argument(std::string(field_name)
+                                + " must contain exactly one value per location");
+  }
+
+  DoubleVector shares;
+  shares.reserve(node[field_name].size());
+  for (const auto &entry : node[field_name]) {
+    const auto share = entry.as<double>();
+    if (!std::isfinite(share) || share < 0.0 || share > 1.0) {
+      throw std::invalid_argument(std::string(field_name) + " values must be finite and in [0,1]");
+    }
+    shares.push_back(share);
+  }
+  return shares;
+}
+
+void configure_child_strategies(const YAML::Node &node, const int strategy_id,
+                                PublicPrivateStrategy* strategy) {
+  if (!node["public_strategy_id"] || !node["private_strategy_id"]) {
+    throw std::invalid_argument("Public and private strategy IDs are required");
+  }
+  const auto public_id = node["public_strategy_id"].as<int>();
+  const auto private_id = node["private_strategy_id"].as<int>();
+  if (public_id == private_id) {
+    throw std::invalid_argument("Public and private strategy IDs must be distinct");
+  }
+  strategy->set_public_strategy(read_child_strategy(node, "public_strategy_id", strategy_id));
+  strategy->set_private_strategy(read_child_strategy(node, "private_strategy_id", strategy_id));
+}
+
+void configure_child_strategies(const YAML::Node &node, const int strategy_id,
+                                PublicPrivateMultiLocationStrategy* strategy) {
+  if (!node["public_strategy_id"] || !node["private_strategy_id"]) {
+    throw std::invalid_argument("Public and private strategy IDs are required");
+  }
+  const auto public_id = node["public_strategy_id"].as<int>();
+  const auto private_id = node["private_strategy_id"].as<int>();
+  if (public_id == private_id) {
+    throw std::invalid_argument("Public and private strategy IDs must be distinct");
+  }
+  strategy->set_public_strategy(read_child_strategy(node, "public_strategy_id", strategy_id));
+  strategy->set_private_strategy(read_child_strategy(node, "private_strategy_id", strategy_id));
+}
+
+}  // namespace
 
 void StrategyBuilder::add_therapies(const YAML::Node &ns, IStrategy* result) {
   for (auto i = 0; i < ns["therapy_ids"].size(); i++) {
@@ -409,5 +504,35 @@ std::unique_ptr<IStrategy> StrategyBuilder::build_mft_age_based_strategy(const Y
         "therapies.");
   }
 
+  return result;
+}
+
+std::unique_ptr<IStrategy> StrategyBuilder::build_public_private_strategy(const YAML::Node &node,
+                                                                          const int &strategy_id) {
+  auto result = std::make_unique<PublicPrivateStrategy>();
+  result->id = strategy_id;
+  result->name = node["name"].as<std::string>();
+  configure_child_strategies(node, strategy_id, result.get());
+  result->start_public_share = read_public_share(node, "start_public_share");
+  result->peak_public_share = read_public_share(node, "peak_public_share");
+  result->public_share = result->start_public_share;
+  result->peak_after = read_peak_after(node);
+  return result;
+}
+
+std::unique_ptr<IStrategy> StrategyBuilder::build_public_private_multi_location_strategy(
+    const YAML::Node &node, const int &strategy_id) {
+  auto result = std::make_unique<PublicPrivateMultiLocationStrategy>();
+  result->id = strategy_id;
+  result->name = node["name"].as<std::string>();
+  configure_child_strategies(node, strategy_id, result.get());
+
+  const auto number_of_locations = Model::get_config()->number_of_locations();
+  result->start_public_share_by_location =
+      read_location_shares(node, "start_public_share_by_location", number_of_locations);
+  result->peak_public_share_by_location =
+      read_location_shares(node, "peak_public_share_by_location", number_of_locations);
+  result->public_share_by_location = result->start_public_share_by_location;
+  result->peak_after = read_peak_after(node);
   return result;
 }

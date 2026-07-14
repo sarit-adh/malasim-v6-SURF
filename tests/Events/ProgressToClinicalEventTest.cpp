@@ -142,8 +142,8 @@ TEST(ProgressToClinicalEventDeterministicTest, RecurrenceUsesConfiguredSecondLin
   ASSERT_NE(second_line_therapy, nullptr);
   EXPECT_EQ(first_line_therapy->get_id(), 6);
   EXPECT_EQ(second_line_therapy->get_id(), 7);
-  EXPECT_TRUE(first_line_is_public);
-  EXPECT_TRUE(second_line_is_public);
+  EXPECT_EQ(first_line_is_public, TreatmentSector::Public);
+  EXPECT_EQ(second_line_is_public, TreatmentSector::Public);
 
   Model::set_random(std::make_unique<TestRandomFixed>(0.0));
   Model::get_instance()->set_second_line_strategy(0);
@@ -151,21 +151,21 @@ TEST(ProgressToClinicalEventDeterministicTest, RecurrenceUsesConfiguredSecondLin
       ProgressToClinicalEvent::determine_therapy(person.get(), true);
   ASSERT_NE(mft_second_line_therapy, nullptr);
   EXPECT_EQ(mft_second_line_therapy->get_id(), 5);
-  EXPECT_TRUE(mft_second_line_is_public);
+  EXPECT_EQ(mft_second_line_is_public, TreatmentSector::Public);
 
   Model::get_instance()->set_second_line_strategy(-1);
   const auto [fallback_therapy, fallback_is_public] =
       ProgressToClinicalEvent::determine_therapy(person.get(), true);
   ASSERT_NE(fallback_therapy, nullptr);
   EXPECT_EQ(fallback_therapy->get_id(), 6);
-  EXPECT_TRUE(fallback_is_public);
+  EXPECT_EQ(fallback_is_public, TreatmentSector::Public);
 
   Model::get_instance()->release();
   test_fixtures::cleanup_test_files();
 }
 
 TEST(ProgressToClinicalEventDeterministicTest,
-     NestedStrategyUsesSecondLineOnlyForPublicRecurrence) {
+     PublicPrivateStrategyUsesSecondLineOnlyForPublicRecurrence) {
   test_fixtures::setup_test_environment("test_input.yml");
 
   utils::Cli::MaSimAppInput cli_input;
@@ -184,14 +184,39 @@ TEST(ProgressToClinicalEventDeterministicTest,
       ProgressToClinicalEvent::determine_therapy(person.get(), true);
   ASSERT_NE(public_therapy, nullptr);
   EXPECT_EQ(public_therapy->get_id(), 7);
-  EXPECT_TRUE(public_sector);
+  EXPECT_EQ(public_sector, TreatmentSector::Public);
 
   Model::set_random(std::make_unique<TestRandomFixed>(0.5));
   const auto [private_therapy, private_sector] =
       ProgressToClinicalEvent::determine_therapy(person.get(), true);
   ASSERT_NE(private_therapy, nullptr);
   EXPECT_NE(private_therapy->get_id(), 7);
-  EXPECT_FALSE(private_sector);
+  EXPECT_EQ(private_sector, TreatmentSector::Private);
+
+  Model::get_instance()->release();
+  test_fixtures::cleanup_test_files();
+}
+
+TEST(ProgressToClinicalEventDeterministicTest,
+     GenericNestedStrategyDoesNotInferSectorFromChildPosition) {
+  test_fixtures::setup_test_environment("test_input.yml");
+
+  utils::Cli::MaSimAppInput cli_input;
+  cli_input.input_path = "test_input.yml";
+  Model::set_cli_input(cli_input);
+  ASSERT_TRUE(Model::get_instance()->initialize());
+
+  auto person = std::make_unique<Person>();
+  person->initialize();
+  person->set_location(0);
+  Model::get_instance()->set_treatment_strategy(13);
+  Model::get_instance()->set_second_line_strategy(2);
+  Model::set_random(std::make_unique<TestRandomFixed>(0.5));
+
+  const auto selection = ProgressToClinicalEvent::determine_therapy(person.get(), true);
+  ASSERT_NE(selection.therapy, nullptr);
+  EXPECT_EQ(selection.therapy->get_id(), 7);
+  EXPECT_EQ(selection.sector, TreatmentSector::Public);
 
   Model::get_instance()->release();
   test_fixtures::cleanup_test_files();

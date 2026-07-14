@@ -16,6 +16,7 @@
 
 #include "AdminLevelManager.h"
 #include "AscFile.h"
+#include "Core/types.h"
 
 class SpatialSettings;
 
@@ -131,12 +132,12 @@ public:
   constexpr static const std::string_view ADMIN_BOUNDARIES = "administrative_boundaries";
 
   // Disallow copy
-  SpatialData(const SpatialData&) = delete;
-  SpatialData& operator=(const SpatialData&) = delete;
+  SpatialData(const SpatialData &) = delete;
+  SpatialData &operator=(const SpatialData &) = delete;
 
   // Disallow move
-  SpatialData(SpatialData&&) = delete;
-  SpatialData& operator=(SpatialData&&) = delete;
+  SpatialData(SpatialData &&) = delete;
+  SpatialData &operator=(SpatialData &&) = delete;
 
   explicit SpatialData(SpatialSettings* spatial_settings);
   // Deconstructor
@@ -201,7 +202,7 @@ public:
    * @throws std::out_of_range if location is invalid
    * @throws std::runtime_error if admin level is not initialized
    */
-  [[nodiscard]] int get_admin_unit(const std::string &level_name, int location) const {
+  [[nodiscard]] int get_admin_unit(const std::string &level_name, core::LocationId location) const {
     return admin_manager_->get_admin_unit(level_name, location);
   }
 

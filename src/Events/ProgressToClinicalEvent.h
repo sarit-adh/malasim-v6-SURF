@@ -2,6 +2,7 @@
 #define PROGRESSTOCLINICALEVENT_H
 
 #include "Event.h"
+#include "Treatment/Strategies/TreatmentSelection.h"
 // #include "Core/ObjectPool.h"
 #include <string>
 
@@ -17,12 +18,12 @@ class ProgressToClinicalEvent : public PersonEvent {
   // OBJECTPOOL(ProgressToClinicalEvent)
 public:
   // Disallow copy
-  ProgressToClinicalEvent(const ProgressToClinicalEvent&) = delete;
-  ProgressToClinicalEvent& operator=(const ProgressToClinicalEvent&) = delete;
+  ProgressToClinicalEvent(const ProgressToClinicalEvent &) = delete;
+  ProgressToClinicalEvent &operator=(const ProgressToClinicalEvent &) = delete;
 
   // Disallow move
-  ProgressToClinicalEvent(ProgressToClinicalEvent&&) = delete;
-  ProgressToClinicalEvent& operator=(ProgressToClinicalEvent&&) = delete;
+  ProgressToClinicalEvent(ProgressToClinicalEvent &&) = delete;
+  ProgressToClinicalEvent &operator=(ProgressToClinicalEvent &&) = delete;
 
   explicit ProgressToClinicalEvent(Person* person) : PersonEvent(person) {}
 
@@ -42,7 +43,7 @@ public:
 
   static void handle_no_treatment(Person* person);
 
-  static std::pair<Therapy*, bool> determine_therapy(Person* person, bool is_recurrence = false);
+  static TreatmentSelection determine_therapy(Person* person, bool is_recurrence = false);
 
   void transition_to_clinical_state(Person* person);
 

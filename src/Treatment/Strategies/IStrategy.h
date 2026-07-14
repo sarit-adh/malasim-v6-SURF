@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 class Therapy;
 
@@ -23,6 +24,8 @@ public:
     NovelDrugIntroduction = 8,
     DistrictMft = 9,
     MFTAgeBased = 10,
+    PublicPrivate = 11,
+    PublicPrivateMultiLocation = 12,
   };
 
   static std::map<std::string, StrategyType> strategy_type_map;

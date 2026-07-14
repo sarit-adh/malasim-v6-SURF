@@ -3,6 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 
 #include "Simulation/Model.h"
@@ -641,6 +642,53 @@ void Config::validate_all_cross_field_validations() {
   if (second_line_strategy_id != -1
       && !strategy_parameters.get_strategy_db_raw().contains(second_line_strategy_id)) {
     throw std::invalid_argument("Second line strategy id should be -1 or in strategy db keys");
+  }
+
+  const auto validate_share = [](const double share, const std::string &field_name) {
+    if (!std::isfinite(share) || share < 0.0 || share > 1.0) {
+      throw std::invalid_argument(field_name + " must be finite and in [0,1]");
+    }
+  };
+  for (const auto &[strategy_id, strategy] : strategy_parameters.get_strategy_db_raw()) {
+    if (strategy.get_type() != "PublicPrivate"
+        && strategy.get_type() != "PublicPrivateMultiLocation") {
+      continue;
+    }
+
+    const auto public_id = strategy.get_public_strategy_id();
+    const auto private_id = strategy.get_private_strategy_id();
+    if (public_id == private_id) {
+      throw std::invalid_argument("Public and private strategy ids must be distinct");
+    }
+    if (public_id < 0 || private_id < 0 || public_id >= strategy_id || private_id >= strategy_id
+        || !strategy_parameters.get_strategy_db_raw().contains(public_id)
+        || !strategy_parameters.get_strategy_db_raw().contains(private_id)) {
+      throw std::invalid_argument(
+          "Public and private strategy ids must reference previously defined strategies");
+    }
+    if (strategy.get_peak_after() < 0) {
+      throw std::invalid_argument("peak_after must be non-negative");
+    }
+
+    if (strategy.get_type() == "PublicPrivate") {
+      validate_share(strategy.get_start_public_share(), "start_public_share");
+      validate_share(strategy.get_peak_public_share(), "peak_public_share");
+      continue;
+    }
+
+    const auto expected_locations =
+        static_cast<std::size_t>(spatial_settings_.get_number_of_locations());
+    if (strategy.get_start_public_share_by_location().size() != expected_locations
+        || strategy.get_peak_public_share_by_location().size() != expected_locations) {
+      throw std::invalid_argument(
+          "Public/private location shares must contain exactly one value per location");
+    }
+    for (const auto share : strategy.get_start_public_share_by_location()) {
+      validate_share(share, "start_public_share_by_location");
+    }
+    for (const auto share : strategy.get_peak_public_share_by_location()) {
+      validate_share(share, "peak_public_share_by_location");
+    }
   }
 
   /*----------------------------

@@ -5,6 +5,8 @@
 #include <set>
 #include <stdexcept>
 
+#include "Core/types.h"
+
 int AdminLevelManager::register_level(const std::string &name) {
   // Check if name already exists
   if (has_level(name)) {
@@ -73,7 +75,8 @@ int AdminLevelManager::get_admin_level_id(const std::string &level_name) const {
   return it->second;
 }
 
-int AdminLevelManager::get_admin_unit(const std::string &level_name, int location) const {
+int AdminLevelManager::get_admin_unit(const std::string &level_name,
+                                      core::LocationId location) const {
   auto it = name_to_id_.find(level_name);
   if (it == name_to_id_.end()) {
     throw std::runtime_error("get_admin_unit: Administrative level '" + level_name + "' not found");
@@ -81,7 +84,7 @@ int AdminLevelManager::get_admin_unit(const std::string &level_name, int locatio
   return get_admin_unit(it->second, location);
 }
 
-int AdminLevelManager::get_admin_unit(int level_id, int location) const {
+int AdminLevelManager::get_admin_unit(int level_id, core::LocationId location) const {
   if (level_id < 0 || level_id >= static_cast<int>(boundaries_.size())) {
     throw std::out_of_range("Invalid level ID: " + std::to_string(level_id));
   }
@@ -191,7 +194,7 @@ BoundaryData AdminLevelManager::populate_lookup(const AscFile* raster) {
   return result;
 }
 
-void AdminLevelManager::validate_raster(const AscFile* raster) const {
+void AdminLevelManager::validate_raster(const AscFile* raster) {
   if (raster == nullptr) { throw std::runtime_error("Null raster provided"); }
 
   if (raster->nrows <= 0 || raster->ncols <= 0) {

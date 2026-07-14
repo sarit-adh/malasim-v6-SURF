@@ -21,8 +21,8 @@
 #include "Simulation/Model.h"
 #include "Treatment/ITreatmentCoverageModel.h"
 #include "Treatment/Strategies/IStrategy.h"
-#include "Treatment/Strategies/NestedMFTMultiLocationStrategy.h"
-#include "Treatment/Strategies/NestedMFTStrategy.h"
+#include "Treatment/Strategies/PublicPrivateMultiLocationStrategy.h"
+#include "Treatment/Strategies/PublicPrivateStrategy.h"
 #include "Utils/Random.h"
 
 // OBJECTPOOL_IMPL(ProgressToClinicalEvent)
@@ -51,8 +51,8 @@ void ProgressToClinicalEvent::handle_no_treatment(Person* person) {
   }
 }
 
-std::pair<Therapy*, bool> ProgressToClinicalEvent::determine_therapy(Person* person,
-                                                                     const bool is_recurrence) {
+TreatmentSelection ProgressToClinicalEvent::determine_therapy(Person* person,
+                                                              const bool is_recurrence) {
   if (person == nullptr) { throw std::invalid_argument("Person must not be null"); }
 
   auto* treatment_strategy = Model::get_treatment_strategy();
@@ -64,88 +64,24 @@ std::pair<Therapy*, bool> ProgressToClinicalEvent::determine_therapy(Person* per
   // the public sector.
   auto* second_line_strategy = Model::get_second_line_strategy();
 
-  // Select a therapy from a nested strategy using the supplied treatment
-  // distribution. The distribution must correspond one-to-one with the
-  // nested strategy list.
-  const auto select_nested_therapy =
-      [&](const auto* nested_strategy,
-          const std::vector<double> &distribution) -> std::pair<Therapy*, bool> {
-    if (nested_strategy->strategy_list.empty()) {
-      throw std::runtime_error("Nested treatment strategy has no child strategies");
-    }
-
-    if (distribution.size() != nested_strategy->strategy_list.size()) {
-      throw std::runtime_error("Treatment distribution size does not match strategy list size");
-    }
-
-    // Select a nested strategy using cumulative weighted sampling.
-    // The last strategy is the fallback for small floating-point gaps
-    // between the cumulative probability and 1.0.
-    const auto probability = Model::get_random()->random_flat(0.0, 1.0);
-
-    double cumulative_probability = 0.0;
-    std::size_t strategy_id = distribution.size() - 1;
-
-    for (std::size_t i = 0; i < distribution.size(); ++i) {
-      cumulative_probability += distribution[i];
-      if (probability < cumulative_probability) {
-        strategy_id = i;
-        break;
-      }
-    }
-
-    // By convention, strategy index 0 represents treatment delivered
-    // through the public sector. Other indices represent non-public
-    // treatment channels, such as the private sector.
-    const bool is_public_sector_treatment = strategy_id == 0;
-
-    // A recurrent case initially assigned to the public sector receives
-    // second-line therapy when a second-line strategy is configured.
-    if (is_public_sector_treatment && is_recurrence && second_line_strategy != nullptr) {
-      return {second_line_strategy->get_therapy(person), true};
-    }
-
-    auto* selected_strategy = nested_strategy->strategy_list[strategy_id];
-    if (selected_strategy == nullptr) {
-      throw std::runtime_error("Selected nested treatment strategy is null");
-    }
-
-    // The bool indicates whether the selected treatment was delivered
-    // through the public sector.
-    return {
-        selected_strategy->get_therapy(person),
-        is_public_sector_treatment,
-    };
-  };
-
-  // A standard nested MFT uses the same public/private treatment
-  // distribution for every location.
-  if (const auto* strategy = dynamic_cast<NestedMFTStrategy*>(treatment_strategy);
+  TreatmentSelection selection{nullptr, TreatmentSector::Public};
+  if (auto* strategy = dynamic_cast<PublicPrivateStrategy*>(treatment_strategy);
       strategy != nullptr) {
-    return select_nested_therapy(strategy, strategy->distribution);
+    selection = strategy->select_treatment(person);
+  } else if (auto* strategy = dynamic_cast<PublicPrivateMultiLocationStrategy*>(treatment_strategy);
+             strategy != nullptr) {
+    selection = strategy->select_treatment(person);
+  } else {
+    // Strategies without explicit sector semantics are public-sector strategies.
+    selection = {treatment_strategy->get_therapy(person), TreatmentSector::Public};
   }
 
-  // A multi-location nested MFT uses a location-specific public/private
-  // treatment distribution.
-  if (const auto* strategy = dynamic_cast<NestedMFTMultiLocationStrategy*>(treatment_strategy);
-      strategy != nullptr) {
-    const auto location = person->get_location();
-
-    if (location < 0 || static_cast<std::size_t>(location) >= strategy->distribution.size()) {
-      throw std::out_of_range("Person location is outside treatment distribution range");
-    }
-
-    return select_nested_therapy(strategy,
-                                 strategy->distribution[static_cast<std::size_t>(location)]);
+  if (selection.sector == TreatmentSector::Public && is_recurrence
+      && second_line_strategy != nullptr) {
+    selection.therapy = second_line_strategy->get_therapy(person);
   }
 
-  // A non-nested treatment strategy is treated as public-sector treatment.
-  // Recurrent cases receive second-line therapy when available.
-  if (is_recurrence && second_line_strategy != nullptr) {
-    return {second_line_strategy->get_therapy(person), true};
-  }
-
-  return {treatment_strategy->get_therapy(person), true};
+  return selection;
 }
 
 void ProgressToClinicalEvent::apply_therapy(Person* person, Therapy* therapy,
@@ -275,7 +211,8 @@ void ProgressToClinicalEvent::transition_to_clinical_state(Person* person) {
     //       apply_therapy(person, therapy, is_public_sector);
     // }
     // this is normal routine for clinical cases
-    const auto [therapy, is_public_sector] = determine_therapy(person, is_recurrence_);
+    const auto selection = determine_therapy(person, is_recurrence_);
+    auto* therapy = selection.therapy;
 
     Model::get_mdc()->record_1_treatment(person->get_location(), person->get_age(),
                                          person->get_age_class(), therapy->get_id());
@@ -283,7 +220,7 @@ void ProgressToClinicalEvent::transition_to_clinical_state(Person* person) {
     person->schedule_test_treatment_failure_event(
         clinical_caused_parasite_,
         Model::get_config()->get_therapy_parameters().get_tf_testing_day(), therapy->get_id());
-    apply_therapy(person, therapy, is_public_sector);
+    apply_therapy(person, therapy, selection.is_public());
   } else {
     // not recieve treatment
     // Model::get_mdc()->record_1_non_treated_case(person->get_location(), person->get_age(),

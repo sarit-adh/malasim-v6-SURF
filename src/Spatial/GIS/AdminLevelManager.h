@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "AscFile.h"
+#include "Core/types.h"
 
 /**
  * @struct BoundaryData
@@ -119,7 +120,7 @@ public:
    * @throws std::runtime_error if level doesn't exist
    * @throws std::out_of_range if location is invalid
    */
-  [[nodiscard]] int get_admin_unit(const std::string &level_name, int location) const;
+  [[nodiscard]] int get_admin_unit(const std::string &level_name, core::LocationId location) const;
 
   /**
    * @brief Get the admin unit ID for a location
@@ -129,7 +130,7 @@ public:
    * @throws std::runtime_error if level doesn't exist
    * @throws std::out_of_range if location is invalid
    */
-  [[nodiscard]] int get_admin_unit(int level_id, int location) const;
+  [[nodiscard]] int get_admin_unit(int level_id, core::LocationId location) const;
 
   /**
    * @brief Get all locations in an administrative unit
@@ -208,14 +209,14 @@ private:
    * @param raster The raster file to populate
    * @return BoundaryData struct containing lookup data
    */
-  BoundaryData populate_lookup(const AscFile* raster);
+  static BoundaryData populate_lookup(const AscFile* raster);
 
   /**
    * @brief Validate a raster file
    * @param raster The raster file to validate
    * @throws std::runtime_error if validation fails
    */
-  void validate_raster(const AscFile* raster) const;
+  static void validate_raster(const AscFile* raster);
 };
 
 #endif  // ADMIN_LEVEL_MANAGER_H

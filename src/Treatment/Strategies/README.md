@@ -24,10 +24,12 @@ The Treatment Strategies module provides:
 - `NestedMFTStrategy`: Hierarchical MFT
 - `DistrictMFTStrategy`: Location-specific
 - `NovelDrugIntroductionStrategy`: New drug deployment
+- `PublicPrivateStrategy`: Explicit public/private channels with a global share
 
 ### Multi-Location Strategies
 - `MFTMultiLocationStrategy`: Regional MFT
 - `NestedMFTMultiLocationStrategy`: Complex regional
+- `PublicPrivateMultiLocationStrategy`: Explicit location-specific public/private channels
 - `MFTRebalancingStrategy`: Distribution optimization
 
 ## Implementation

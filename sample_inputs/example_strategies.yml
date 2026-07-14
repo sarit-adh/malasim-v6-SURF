@@ -61,10 +61,11 @@ strategy_parameters:
       therapy_ids: [11]
     11:
       name: AL-BaseLineStrategy
-      type: NestedMFT
-      strategy_ids: [1, 0]
-      start_distribution: [0.05, 0.95]
-      peak_distribution: [0.8, 0.2]
+      type: PublicPrivate
+      public_strategy_id: 1
+      private_strategy_id: 0
+      start_public_share: 0.05
+      peak_public_share: 0.8
       peak_after: 3650
     12:
       name: ASAQ-BaseLineStrategy
@@ -75,10 +76,11 @@ strategy_parameters:
       peak_after: 3650
     13:
       name: BaseLineStrategy
-      type: NestedMFTMultiLocation
-      strategy_ids: [0, 1]
-      start_distribution_by_location: [[0.05, 0.95]]
-      peak_distribution_by_location: [[0.8, 0.2]]
+      type: PublicPrivateMultiLocation
+      public_strategy_id: 0
+      private_strategy_id: 1
+      start_public_share_by_location: [0.05]
+      peak_public_share_by_location: [0.8]
       peak_after: 3650
     14:
       name: DHAPPQ-SFTStrategy

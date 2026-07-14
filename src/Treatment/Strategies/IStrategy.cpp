@@ -10,4 +10,6 @@ std::map<std::string, IStrategy::StrategyType> IStrategy::strategy_type_map{
     {"MFTMultiLocation", StrategyType::MFTMultiLocation},
     {"NestedMFTMultiLocation", StrategyType::NestedMFTMultiLocation},
     {"NovelDrugIntroduction", StrategyType::NovelDrugIntroduction},
+    {"PublicPrivate", StrategyType::PublicPrivate},
+    {"PublicPrivateMultiLocation", StrategyType::PublicPrivateMultiLocation},
 };
