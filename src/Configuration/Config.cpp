@@ -57,6 +57,7 @@ void Config::reset_load_state() {
   version6_pfpr_incidence_calibrations_ = ImmuneSystemParameterOverrides{};
   has_version6_pfpr_incidence_calibrations_ = false;
   population_events_ = PopulationEvents{};
+  smc_reporter_settings_ = SMCReporterSettings{}; //SMCReporterSettings
 }
 
 void Config::parse_configuration(const YAML::Node &config) {
@@ -82,6 +83,7 @@ void Config::parse_configuration(const YAML::Node &config) {
   mosquito_parameters_ = config["mosquito_parameters"].as<MosquitoParameters>();
 
   if (config["rapt_settings"]) { rapt_settings_ = config["rapt_settings"].as<RaptSettings>(); }
+  if (config["smc_reporter_settings"]) {smc_reporter_settings_ = config["smc_reporter_settings"].as<SMCReporterSettings>();} //SMCReporterSettings
 }
 
 void Config::parse_version6_pfpr_incidence_calibrations(const YAML::Node &config) {
@@ -927,6 +929,8 @@ void Config::validate_population_events() const {
     if (population_event.get_name().empty()) {
       throw std::invalid_argument("Name should be provided for all population events");
     }
+    std::cout << "'" << population_event.get_name() << "'" << std::endl;
+    if(population_event.get_name()=="SMC") { return;} // event date is later constructed based on year range 
     for (auto event_info : population_event.get_info()) {
       // Check if event date is valid
       if (event_info.get_date() < simulation_timeframe_.get_starting_date()

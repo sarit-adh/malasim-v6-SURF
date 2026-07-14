@@ -14,6 +14,7 @@
 #include "Specialist/CellularReporter.h"
 #include "Specialist/PopulationReporter.h"
 #include "Specialist/SeasonalImmunity.h"
+#include "SMCReporter.h"
 
 std::map<std::string, Reporter::ReportType> Reporter::ReportTypeMap{
     {"Console",         CONSOLE},
@@ -26,6 +27,7 @@ std::map<std::string, Reporter::ReportType> Reporter::ReportTypeMap{
     {"CellularReporter", CELLULAR_REPORTER},
     {"SeasonalImmunity", SEASONAL_IMMUNITY},
     {"AgeBand", AGE_BAND_REPORTER},
+    {"SMCReporter", SMC_REPORTER}, // SMC Reporter
     {"SQLiteMonthlyReporter", SQLITE_MONTHLY_REPORTER},
     {"SQLiteValidationReporter", SQLITE_VALIDATION_REPORTER},
 #ifdef ENABLE_TRAVEL_TACKING
@@ -60,6 +62,8 @@ std::unique_ptr<Reporter> Reporter::MakeReport(ReportType report_type) {
     return std::make_unique<SeasonalImmunity>();
   case AGE_BAND_REPORTER:
     return std::make_unique<AgeBandReporter>();
+  case SMC_REPORTER:
+    return std::make_unique<SMCReporter>(); // SMC Reporter
   case SQLITE_MONTHLY_REPORTER: {
     auto cell_level_reporting = Model::get_config()->get_model_settings().get_cell_level_reporting();
     return std::make_unique<SQLiteMonthlyReporter>(cell_level_reporting);

@@ -16,6 +16,7 @@
 #include "PopulationDemographic.h"
 #include "PopulationEvents.h"
 #include "RaptSettings.h"
+#include "SMCReporterSettings.h" //SMCReporterSettings
 #include "SeasonalitySettings.h"
 #include "SimulationTimeframe.h"
 #include "SpatialSettings/SpatialSettings.h"
@@ -114,6 +115,8 @@ public:
   [[nodiscard]] PopulationEvents &get_population_events() { return population_events_; }
   [[nodiscard]] RaptSettings &get_rapt_settings() { return rapt_settings_; }
 
+  [[nodiscard]] SMCReporterSettings &get_smc_reporter_settings() { return smc_reporter_settings_; } //SMCReporterSettings
+
   // Make relevant getters virtual for mocking
   [[nodiscard]] size_t number_of_locations() const;
   [[nodiscard]] int number_of_age_classes() const;
@@ -195,6 +198,7 @@ private:
   MosquitoParameters mosquito_parameters_;
   PopulationEvents population_events_;
   RaptSettings rapt_settings_;
+  SMCReporterSettings smc_reporter_settings_; //SMCReporterSettings
 };
 
 #endif  // CONFIG_H
