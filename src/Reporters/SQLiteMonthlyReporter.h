@@ -73,6 +73,12 @@ private:
   void collect_genome_data_for_a_person(Person* person, int unit_id, int level_id);
   void build_up_genome_data_insert_values(int month_id, int level_id);
 
+  // Records the immune_system_parameter_overrides values actually in effect
+  // (after the config is initialized and the selected candidate is applied)
+  // into a single flat `configuration` table so the applied setup can be
+  // inspected directly from the output database.
+  void create_and_populate_configuration_table();
+
 public:
   explicit SQLiteMonthlyReporter(bool cell_level_reporting = false)
       : enable_cell_level_reporting(cell_level_reporting) {}
