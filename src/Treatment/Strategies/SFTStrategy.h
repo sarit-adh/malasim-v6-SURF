@@ -1,6 +1,8 @@
 #ifndef SFTSTRATEGY_H
 #define SFTSTRATEGY_H
 
+#include <vector>
+
 #include "IStrategy.h"
 
 class SFTStrategy : public IStrategy {
