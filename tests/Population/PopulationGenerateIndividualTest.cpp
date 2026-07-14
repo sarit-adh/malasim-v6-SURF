@@ -5,8 +5,6 @@
 #include "Parasites/Genotype.h"
 #include "Population/DrugsInBlood.h"
 #include "Population/ImmuneSystem/ImmuneSystem.h"
-#include "Population/ImmuneSystem/InfantImmuneComponent.h"
-#include "Population/ImmuneSystem/NonInfantImmuneComponent.h"
 #include "Population/Person/Person.h"
 #include "Simulation/Model.h"
 #include "Treatment/Therapies/DrugType.h"
@@ -81,12 +79,11 @@ TEST_F(PersonGenerateIndividualTest, InitializePersonLikePopulationGenerateIndiv
 
   // 7. Set immune component based on age
   if (simulation_time_birthday + Constants::DAYS_IN_YEAR / 2 >= 0) {
-    person_->get_immune_system()->set_immune_component(std::make_unique<InfantImmuneComponent>());
+    person_->get_immune_system()->set_component_type(ImmuneComponentType::Infant);
     person_->schedule_switch_immune_component_event(simulation_time_birthday
                                                     + (Constants::DAYS_IN_YEAR / 2));
   } else {
-    person_->get_immune_system()->set_immune_component(
-        std::make_unique<NonInfantImmuneComponent>());
+    person_->get_immune_system()->set_component_type(ImmuneComponentType::NonInfant);
   }
 
   // 8. Set immune value (using a fixed value for test)

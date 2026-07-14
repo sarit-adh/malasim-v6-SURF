@@ -11,11 +11,18 @@
 #include "Simulation/Model.h"
 #include "Utils/Random.h"
 
-ImmuneComponent::ImmuneComponent(ImmuneSystem* immune_system) : immune_system_(immune_system) {}
+namespace {
 
-ImmuneComponent::~ImmuneComponent() = default;
+std::size_t age_index(core::Age age) {
+  return static_cast<std::size_t>(
+      age > immune::K_MAX_IMMUNE_AGE_INDEX ? immune::K_MAX_IMMUNE_AGE_INDEX : age);
+}
+}  // namespace
 
-double ImmuneComponent::get_current_value() {
+ImmuneComponent::ImmuneComponent(ImmuneSystem* immune_system, ImmuneComponentType type)
+    : immune_system_(immune_system), type_(type) {}
+
+double ImmuneComponent::get_current_value() const {
   // Early exit if no immune system or person - avoid all pointer dereferences
   if (immune_system_ == nullptr) { return 0.0; }
 
@@ -27,6 +34,12 @@ double ImmuneComponent::get_current_value() {
 
   // Early exit if no time has passed - avoid expensive exp() calculation
   if (duration == 0.0) { return latest_value_; }
+
+  if (type_ == ImmuneComponentType::Infant) {
+    const auto factor = duration == 1 ? immune::K_ONE_DAY_INFANT_DECAY_FACTOR
+                                      : std::exp(-immune::K_INFANT_IMMUNE_DECAY_RATE * duration);
+    return latest_value_ * factor;
+  }
 
   const auto age = person->get_age();
 
@@ -47,11 +60,26 @@ double ImmuneComponent::get_current_value() {
 void ImmuneComponent::update() { latest_value_ = get_current_value(); }
 
 double ImmuneComponent::get_one_day_decay_factor(core::Age age) const {
-  return std::exp(-get_decay_rate(age));
+  if (type_ == ImmuneComponentType::Infant) { return immune::K_ONE_DAY_INFANT_DECAY_FACTOR; }
+  const auto &parameters = Model::get_config()->get_immune_system_parameters();
+  return parameters.decay_rate_one_day_factor;
 }
 
 double ImmuneComponent::get_one_day_acquire_factor(core::Age age) const {
-  return std::exp(-get_acquire_rate(age));
+  if (type_ == ImmuneComponentType::Infant) { return 1.0; }
+  const auto &parameters = Model::get_config()->get_immune_system_parameters();
+  return parameters.acquire_rate_by_age_one_day_factor[age_index(age)];
+}
+
+double ImmuneComponent::get_decay_rate(core::Age) const {
+  if (type_ == ImmuneComponentType::Infant) { return immune::K_INFANT_IMMUNE_DECAY_RATE; }
+  return Model::get_config()->get_immune_system_parameters().decay_rate;
+}
+
+double ImmuneComponent::get_acquire_rate(core::Age age) const {
+  if (type_ == ImmuneComponentType::Infant) { return 0.0; }
+  const auto &parameters = Model::get_config()->get_immune_system_parameters();
+  return parameters.acquire_rate_by_age[age_index(age)];
 }
 
 void ImmuneComponent::draw_random_immune() {

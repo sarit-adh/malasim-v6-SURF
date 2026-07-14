@@ -7,8 +7,6 @@
 #include "Simulation/Model.h"
 #include "Population/Person/Person.h"
 #include "Population/ImmuneSystem/ImmuneSystem.h"
-#include "Population/ImmuneSystem/InfantImmuneComponent.h"
-#include "Population/ImmuneSystem/NonInfantImmuneComponent.h"
 #include "Parasites/Genotype.h"
 #include "Population/ClonalParasitePopulation.h"
 #include "Population/DrugsInBlood.h"
@@ -90,12 +88,12 @@ protected:
     // Set immune component at 6 months
     if (simulation_time_birthday + Constants::DAYS_IN_YEAR / 2 >= 0) {
         if (person_->get_age() > 0) { spdlog::error("Error in calculating simulation_time_birthday"); }
-        person_->get_immune_system()->set_immune_component(std::make_unique<InfantImmuneComponent>());
+        person_->get_immune_system()->set_component_type(ImmuneComponentType::Infant);
         // schedule for switch
         person_->schedule_switch_immune_component_event(simulation_time_birthday
                                                      + (Constants::DAYS_IN_YEAR / 2));
     } else {
-        person_->get_immune_system()->set_immune_component(std::make_unique<NonInfantImmuneComponent>());
+        person_->get_immune_system()->set_component_type(ImmuneComponentType::NonInfant);
     }
 
     // Set immune values

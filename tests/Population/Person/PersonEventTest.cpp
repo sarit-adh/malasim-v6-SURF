@@ -18,8 +18,6 @@
 #include "Population/ClonalParasitePopulation.h"
 #include "Population/DrugsInBlood.h"
 #include "Population/ImmuneSystem/ImmuneSystem.h"
-#include "Population/ImmuneSystem/InfantImmuneComponent.h"
-#include "Population/ImmuneSystem/NonInfantImmuneComponent.h"
 #include "Population/Person/Person.h"
 #include "Simulation/Model.h"
 #include "Treatment/Therapies/Drug.h"
@@ -61,8 +59,7 @@ protected:
     person_->set_birthday(simulation_time_birthday);
 
     // Set immune component
-    person_->get_immune_system()->set_immune_component(
-        std::make_unique<NonInfantImmuneComponent>());
+    person_->get_immune_system()->set_component_type(ImmuneComponentType::NonInfant);
     person_->get_immune_system()->immune_component()->set_latest_value(0.5);
 
     // Set biting rate and moving level
@@ -126,8 +123,9 @@ TEST_F(PersonInternalEventTest, BirthdayEventTest) {
 
 // Test SwitchImmuneComponentEvent
 TEST_F(PersonInternalEventTest, SwitchImmuneComponentEventTest) {
-  // Set up an infant immune component first
-  person_->get_immune_system()->set_immune_component(std::make_unique<InfantImmuneComponent>());
+  // Set up infant mode and a value that must survive the transition.
+  person_->get_immune_system()->set_component_type(ImmuneComponentType::Infant);
+  person_->get_immune_system()->set_latest_immune_value(0.75);
 
   // Create and schedule a switch immune component event
   auto event = std::make_unique<SwitchImmuneComponentEvent>(person_.get());
@@ -137,8 +135,10 @@ TEST_F(PersonInternalEventTest, SwitchImmuneComponentEventTest) {
   // Execute events at current time
   person_->update_events(Model::get_scheduler()->current_time());
 
-  // Verify immune component was switched to NonInfantImmuneComponent
-  ASSERT_NE(person_->get_immune_system()->immune_component(), nullptr);
+  // Verify the mode changed without replacing or resetting the component.
+  EXPECT_EQ(person_->get_immune_system()->immune_component()->type(),
+            ImmuneComponentType::NonInfant);
+  EXPECT_DOUBLE_EQ(person_->get_immune_system()->get_latest_immune_value(), 0.75);
 }
 
 // Test MoveParasiteToBloodEvent

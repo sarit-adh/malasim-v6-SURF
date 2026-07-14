@@ -2,9 +2,8 @@
 
 #include "Population/ImmuneSystem/ImmuneComponent.h"
 #include "Population/ImmuneSystem/ImmuneSystem.h"
+#include "Population/ImmuneSystem/ImmuneSystemConstants.h"
 #include "Population/ImmuneSystem/ImmunityClearanceUpdateFunction.h"
-#include "Population/ImmuneSystem/InfantImmuneComponent.h"
-#include "Population/ImmuneSystem/NonInfantImmuneComponent.h"
 #include "Simulation/Model.h"
 #include "Utils/Cli.h"
 #include "fixtures/TestFileGenerators.h"
@@ -28,55 +27,37 @@ struct ModelTestEnvironment {
 };
 }  // namespace
 
-// Dummy classes for isolation
-template <typename Base>
-class DummyComponent : public Base {
-public:
-  double value = 1.23;
-  DummyComponent(ImmuneSystem* immune_system = nullptr) : Base(immune_system) {}
-  double get_current_value() override { return value; }
-  double get_decay_rate(core::Age age) const override { return 0.1 + age; }
-  double get_acquire_rate(core::Age age) const override { return 0.2 + age; }
-  void update() override { value += 1.0; }
-  void draw_random_immune() override { value = 42.0; }
-};
-
 TEST(ImmuneComponentTest, ConstructionAndDefaults) {
-  DummyComponent<ImmuneComponent> comp;
+  ImmuneComponent comp;
   EXPECT_EQ(comp.latest_value(), 0);
+  EXPECT_EQ(comp.type(), ImmuneComponentType::NonInfant);
   comp.set_latest_value(3.14);
   EXPECT_DOUBLE_EQ(comp.latest_value(), 3.14);
 }
 
-TEST(ImmuneComponentTest, VirtualMethods) {
-  DummyComponent<ImmuneComponent> comp;
-  EXPECT_DOUBLE_EQ(comp.get_current_value(), 1.23);
-  EXPECT_DOUBLE_EQ(comp.get_decay_rate(2), 2.1);
-  EXPECT_DOUBLE_EQ(comp.get_acquire_rate(2), 2.2);
-  comp.update();
-  EXPECT_DOUBLE_EQ(comp.value, 2.23);
-  comp.draw_random_immune();
-  EXPECT_DOUBLE_EQ(comp.value, 42.0);
+TEST(ImmuneComponentTest, InfantModeUsesInfantRates) {
+  ModelTestEnvironment model_environment;
+  ImmuneComponent comp(nullptr, ImmuneComponentType::Infant);
+  EXPECT_DOUBLE_EQ(comp.get_decay_rate(0), immune::K_INFANT_IMMUNE_DECAY_RATE);
+  EXPECT_DOUBLE_EQ(comp.get_acquire_rate(0), 0.0);
+  EXPECT_DOUBLE_EQ(comp.get_one_day_decay_factor(0), immune::K_ONE_DAY_INFANT_DECAY_FACTOR);
+  EXPECT_DOUBLE_EQ(comp.get_one_day_acquire_factor(0), 1.0);
 }
 
-TEST(InfantImmuneComponentTest, ConstructionAndMethods) {
+TEST(ImmuneComponentTest, SwitchToNonInfantPreservesValue) {
   ModelTestEnvironment model_environment;
-  InfantImmuneComponent comp;
-  EXPECT_NO_THROW({ auto decay_rate = comp.get_decay_rate(0); });
-  EXPECT_NO_THROW({ auto acquire_rate = comp.get_acquire_rate(0); });
-  EXPECT_NO_THROW({ auto value = comp.get_current_value(); });
+  ImmuneComponent comp(nullptr, ImmuneComponentType::Infant);
+  comp.set_latest_value(0.75);
+
+  comp.switch_to_non_infant();
+
+  EXPECT_EQ(comp.type(), ImmuneComponentType::NonInfant);
+  EXPECT_DOUBLE_EQ(comp.latest_value(), 0.75);
 }
 
-TEST(NonInfantImmuneComponentTest, ConstructionAndMethods) {
+TEST(ImmuneComponentTest, NonInfantOneDayFactorsUseProcessedConfigCache) {
   ModelTestEnvironment model_environment;
-  NonInfantImmuneComponent comp;
-  EXPECT_NO_THROW({ auto decay_rate = comp.get_decay_rate(10); });
-  EXPECT_NO_THROW({ auto acquire_rate = comp.get_acquire_rate(10); });
-}
-
-TEST(NonInfantImmuneComponentTest, OneDayFactorsUseProcessedConfigCache) {
-  ModelTestEnvironment model_environment;
-  NonInfantImmuneComponent comp;
+  ImmuneComponent comp;
 
   EXPECT_DOUBLE_EQ(comp.get_one_day_acquire_factor(10), std::exp(-comp.get_acquire_rate(10)));
   EXPECT_DOUBLE_EQ(comp.get_one_day_decay_factor(10), std::exp(-comp.get_decay_rate(10)));

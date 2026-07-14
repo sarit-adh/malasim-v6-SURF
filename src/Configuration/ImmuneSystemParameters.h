@@ -1,6 +1,7 @@
 #ifndef IMMUNESYSTEMPARAMETERS_H
 #define IMMUNESYSTEMPARAMETERS_H
 #include <spdlog/spdlog.h>
+#include <yaml-cpp/node/node.h>
 
 #include <cmath>
 
@@ -87,11 +88,11 @@ public:
       alpha_immune = mean_initial_condition_;
       beta_immune = 0.0;
     } else {
-      alpha_immune = mean_initial_condition_ * mean_initial_condition_
-                         * (1 - mean_initial_condition_)
-                         / (sd_initial_condition_ * sd_initial_condition_)
-                     - mean_initial_condition_;
-      beta_immune = alpha_immune / mean_initial_condition_ - alpha_immune;
+      alpha_immune =
+          (mean_initial_condition_ * mean_initial_condition_ * (1 - mean_initial_condition_)
+           / (sd_initial_condition_ * sd_initial_condition_))
+          - mean_initial_condition_;
+      beta_immune = (alpha_immune / mean_initial_condition_) - alpha_immune;
     }
 
     immune_inflation_rate = immune_inflation_rate_;
@@ -106,7 +107,7 @@ public:
     midpoint = midpoint_;
 
     // implement inflation rate
-    double acR = acquire_rate;
+    double ac_r = acquire_rate;
     acquire_rate_by_age.clear();
     acquire_rate_by_age_one_day_factor.clear();
     for (int age = 0; age <= 80; age++) {
@@ -118,11 +119,11 @@ public:
         factor = pow(factor, factor_effect_age_mature_immunity);
       }
 
-      const auto age_acquire_rate = factor * acR;
+      const auto age_acquire_rate = factor * ac_r;
       acquire_rate_by_age.push_back(age_acquire_rate);
       acquire_rate_by_age_one_day_factor.push_back(std::exp(-age_acquire_rate));
 
-      acR *= 1 + immune_inflation_rate;
+      ac_r *= 1 + immune_inflation_rate;
     }
     assert(acquire_rate_by_age.size() == 81);
     assert(acquire_rate_by_age_one_day_factor.size() == 81);
@@ -134,8 +135,8 @@ public:
     c_max = pow(
         10, -(log_parasite_density_asymptomatic - log_parasite_density_cured) / duration_for_naive);
 
-    spdlog::info("alpha_immune {} beta_immune {}",alpha_immune,beta_immune);
-    spdlog::info("c_min {} c_max {}",c_min,c_max);
+    spdlog::info("alpha_immune {} beta_immune {}", alpha_immune, beta_immune);
+    spdlog::info("c_min {} c_max {}", c_min, c_max);
   }
 
 private:

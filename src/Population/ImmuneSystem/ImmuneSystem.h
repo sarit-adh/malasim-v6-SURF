@@ -1,16 +1,14 @@
 #ifndef IMMUNESYSTEM_H
 #define IMMUNESYSTEM_H
 
-#include <memory>
 #include <vector>
 
+#include "Population/ImmuneSystem/ImmuneComponent.h"
 #include "Utils/TypeDef.h"
 
 class Model;
 
 class Person;
-
-class ImmuneComponent;
 
 class Config;
 
@@ -20,8 +18,8 @@ class ImmuneSystem {
   // OBJECTPOOL(ImmuneSystem)
 public:
   // Disallow copy
-  ImmuneSystem(const ImmuneSystem&) = delete;
-  ImmuneSystem& operator=(const ImmuneSystem&) = delete;
+  ImmuneSystem(const ImmuneSystem &) = delete;
+  ImmuneSystem &operator=(const ImmuneSystem &) = delete;
 
   explicit ImmuneSystem(Person* person = nullptr);
 
@@ -30,8 +28,10 @@ public:
   [[nodiscard]] Person* person() const { return person_; }
   void set_person(Person* person) { person_ = person; }
 
-  [[nodiscard]] ImmuneComponent* immune_component() const;
-  void set_immune_component(std::unique_ptr<ImmuneComponent> value);
+  [[nodiscard]] ImmuneComponent* immune_component() { return &immune_component_; }
+  [[nodiscard]] const ImmuneComponent* immune_component() const { return &immune_component_; }
+  void set_component_type(ImmuneComponentType type) { immune_component_.set_type(type); }
+  void switch_to_non_infant() { immune_component_.switch_to_non_infant(); }
 
   [[nodiscard]] bool increase() const { return increase_; }
   void set_increase(bool increase) { increase_ = increase; }
@@ -54,7 +54,7 @@ public:
 
 private:
   Person* person_{nullptr};
-  std::unique_ptr<ImmuneComponent> immune_component_{nullptr};
+  ImmuneComponent immune_component_;
   bool increase_{false};
 
   //    virtual void clear();

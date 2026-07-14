@@ -1,37 +1,24 @@
 #include "ImmuneSystem.h"
 
 #include <cmath>
-#include <memory>
 
 #include "Configuration//Config.h"
-#include "ImmuneComponent.h"
 #include "Population/Person/Person.h"
 #include "Simulation/Model.h"
 
-ImmuneSystem::ImmuneSystem(Person* person) : person_(person), immune_component_(nullptr) {}
+ImmuneSystem::ImmuneSystem(Person* person) : person_(person), immune_component_(this) {}
 
 ImmuneSystem::~ImmuneSystem() { person_ = nullptr; }
 
-ImmuneComponent* ImmuneSystem::immune_component() const { return immune_component_.get(); }
+void ImmuneSystem::draw_random_immune() { immune_component_.draw_random_immune(); }
 
-void ImmuneSystem::set_immune_component(std::unique_ptr<ImmuneComponent> value) {
-  if (value == nullptr) {
-    spdlog::error("ImmuneSystem::set_immune_component: value is nullptr");
-    throw std::invalid_argument("ImmuneSystem::set_immune_component: value is nullptr");
-  }
-  value->set_immune_system(this);
-  immune_component_ = std::move(value);
-}
-
-void ImmuneSystem::draw_random_immune() { immune_component_->draw_random_immune(); }
-
-double ImmuneSystem::get_latest_immune_value() const { return immune_component_->latest_value(); }
+double ImmuneSystem::get_latest_immune_value() const { return immune_component_.latest_value(); }
 
 void ImmuneSystem::set_latest_immune_value(double value) {
-  immune_component_->set_latest_value(value);
+  immune_component_.set_latest_value(value);
 }
 
-double ImmuneSystem::get_current_value() const { return immune_component_->get_current_value(); }
+double ImmuneSystem::get_current_value() const { return immune_component_.get_current_value(); }
 
 double ImmuneSystem::get_parasite_size_after_t_days(const int &duration,
                                                     const double &original_size,
@@ -74,4 +61,4 @@ double ImmuneSystem::get_clinical_progression_probability() const {
   return p_clinical;
 }
 
-void ImmuneSystem::update() { immune_component_->update(); }
+void ImmuneSystem::update() { immune_component_.update(); }

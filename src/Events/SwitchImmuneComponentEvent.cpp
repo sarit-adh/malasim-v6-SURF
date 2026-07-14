@@ -1,10 +1,7 @@
 #include "SwitchImmuneComponentEvent.h"
 
 #include <cassert>
-#include <memory>
-
 #include "Population/ImmuneSystem/ImmuneSystem.h"
-#include "Population/ImmuneSystem/NonInfantImmuneComponent.h"
 #include "Population/Person/Person.h"
 
 // OBJECTPOOL_IMPL(SwitchImmuneComponentEvent)
@@ -25,6 +22,5 @@ void SwitchImmuneComponentEvent::do_execute() {
     spdlog::error("SwitchImmuneComponentEvent::do_execute, person is nullptr");
     throw std::invalid_argument("SwitchImmuneComponentEvent::do_execute, person is nullptr");
   }
-  person->get_immune_system()->set_immune_component(std::make_unique<NonInfantImmuneComponent>());
+  person->get_immune_system()->switch_to_non_infant();
 }
-
