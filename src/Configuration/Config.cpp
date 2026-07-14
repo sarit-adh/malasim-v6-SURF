@@ -17,247 +17,32 @@ int inline get_pipe_count(const std::string &str) {
   return pipe_count;
 }
 
+void validate_share(const double share, const std::string &field_name) {
+  if (!std::isfinite(share) || share < 0.0 || share > 1.0) {
+    throw std::invalid_argument(field_name + " must be finite and in [0,1]");
+  }
+}
+
 bool Config::load(const std::string &filename) {
   config_file_path_ = filename;
   try {
     YAML::Node config = YAML::LoadFile(filename);
 
+    reset_load_state();
     spdlog::info("Configuration file loaded successfully: " + Model::get_cli_input().input_path);
-
-    model_settings_ = config["model_settings"].as<ModelSettings>();
-    simulation_timeframe_ = config["simulation_timeframe"].as<SimulationTimeframe>();
-
-    transmission_settings_ = config["transmission_settings"].as<TransmissionSettings>();
-
-    population_demographic_ = config["population_demographic"].as<PopulationDemographic>();
-
-    spatial_settings_ = config["spatial_settings"].as<SpatialSettings>();
-
-    seasonality_settings_ = config["seasonality_settings"].as<SeasonalitySettings>();
-
-    movement_settings_ = config["movement_settings"].as<MovementSettings>();
-
-    parasite_parameters_ = config["parasite_parameters"].as<ParasiteParameters>();
-
-    immune_system_parameters_ = config["immune_system_parameters"].as<ImmuneSystemParameters>();
-
-    genotype_parameters_ = config["genotype_parameters"].as<GenotypeParameters>();
-
-    drug_parameters_ = config["drug_parameters"].as<DrugParameters>();
-
-    therapy_parameters_ = config["therapy_parameters"].as<TherapyParameters>();
-
-    strategy_parameters_ = config["strategy_parameters"].as<StrategyParameters>();
-
-    epidemiological_parameters_ =
-        config["epidemiological_parameters"].as<EpidemiologicalParameters>();
-
-    mosquito_parameters_ = config["mosquito_parameters"].as<MosquitoParameters>();
-
-    if (config["rapt_settings"]) { rapt_settings_ = config["rapt_settings"].as<RaptSettings>(); }
-
-    // Parse immune_system_paprameter_candidates if present, then override parameters
-    if (config["immune_system_paprameter_candidates"]) {
-      spdlog::info("Found immune_system_paprameter_candidates section — parsing candidates");
-      immune_system_parameter_candidates_ =
-          config["immune_system_paprameter_candidates"].as<ImmuneSystemParameterCandidates>();
-
-      if (immune_system_parameter_candidates_.get_random_selection()) {
-        const auto &candidates = immune_system_parameter_candidates_.get_candidates();
-        if (candidates.empty()) {
-          spdlog::warn(
-              "immune_system_paprameter_candidates: random_selection=true but candidates is empty "
-              "— skipping random selection");
-        } else {
-          // Collect actual keys so selection is correct even for non-contiguous maps
-          std::vector<int> candidate_keys;
-          candidate_keys.reserve(candidates.size());
-          for (const auto &[key, val] : candidates) { candidate_keys.push_back(key); }
-          const auto pick = static_cast<std::size_t>(
-              Model::get_random()->random_uniform(static_cast<uint64_t>(candidate_keys.size())));
-          const int selected_idx = candidate_keys[pick];
-          immune_system_parameter_candidates_.set_used_in_simulation(selected_idx);
-          spdlog::info(
-              "immune_system_paprameter_candidates: random_selection=true, num_candidates={}, "
-              "sampled used_in_simulation={}",
-              candidate_keys.size(), selected_idx);
-        }
-      }
-
-      has_immune_system_parameter_candidates_ = true;
-      immune_system_parameter_candidates_.log_all();
-
-      if (immune_system_parameter_candidates_.has_selected_candidate()) {
-        const auto &cdd = immune_system_parameter_candidates_.get_selected_candidate();
-        const int idx = immune_system_parameter_candidates_.get_used_in_simulation();
-
-        spdlog::info("Applying candidate[{}] overrides:", idx);
-        spdlog::info("  p_ci_symp={}  -> allow_new_coinfection_to_cause_symptoms.probability",
-                     cdd.p_ci_symp);
-        spdlog::info(
-            "  z={}          -> immune_system_parameters.immune_effect_on_progression_to_clinical",
-            cdd.z);
-        spdlog::info(
-            "  kappa={}      -> immune_system_parameters.factor_effect_age_mature_immunity",
-            cdd.kappa);
-        spdlog::info("  midpoint={}   -> immune_system_parameters.midpoint", cdd.midpoint);
-        spdlog::info(
-            "  p_seek_base={} -> "
-            "epidemiological_parameters.age_based_probability_of_seeking_treatment.power.base",
-            cdd.p_seek_base);
-        spdlog::info("  mutation_probability_per_locus={} -> genotype_parameters (skipped if -1)",
-                     cdd.mutation_probability_per_locus);
-
-        // Override immune_system_parameters (z, kappa, midpoint)
-        immune_system_parameters_.set_immune_effect_on_progression_to_clinical(cdd.z);
-        immune_system_parameters_.set_factor_effect_age_mature_immunity(cdd.kappa);
-        immune_system_parameters_.set_midpoint(cdd.midpoint);
-
-        // Override allow_new_coinfection_to_cause_symptoms.probability (p_ci_symp)
-        auto coinfection =
-            epidemiological_parameters_.get_allow_new_coinfection_to_cause_symptoms();
-        coinfection.set_probability(cdd.p_ci_symp);
-        epidemiological_parameters_.set_allow_new_coinfection_to_cause_symptoms(coinfection);
-
-        // Override age_based_probability_of_seeking_treatment.power.base (p_seek_base)
-        auto age_based =
-            epidemiological_parameters_.get_age_based_probability_of_seeking_treatment();
-        auto power = age_based.get_power();
-        power.base = cdd.p_seek_base;
-        age_based.set_power(power);
-        epidemiological_parameters_.set_age_based_probability_of_seeking_treatment(age_based);
-
-        // Override mutation_probability_per_locus if candidate specifies one (not -1)
-        if (cdd.mutation_probability_per_locus >= 0.0) {
-          genotype_parameters_.set_mutation_probability_per_locus(
-              cdd.mutation_probability_per_locus);
-          spdlog::info("  mutation_probability_per_locus overridden to {}",
-                       genotype_parameters_.get_mutation_probability_per_locus());
-        } else {
-          spdlog::info("  mutation_probability_per_locus=-1 -> keeping default {}",
-                       genotype_parameters_.get_mutation_probability_per_locus());
-        }
-
-        spdlog::info("Candidate[{}] overrides applied successfully", idx);
-      } else {
-        spdlog::warn(
-            "immune_system_paprameter_candidates: used_in_simulation={} not found in "
-            "candidates — no overrides applied",
-            immune_system_parameter_candidates_.get_used_in_simulation());
-      }
-    } else {
-      spdlog::info(
-          "No immune_system_paprameter_candidates section found — using default parameters");
-    }
+    parse_configuration(config);
+    parse_immune_system_parameter_candidates(config);
 
     spdlog::info("Configuration file parsed successfully");
 
     // Validate all cross field validations
     validate_all_cross_field_validations();
 
+    log_genotype_configuration();
+
+    process_configuration(config);
+    parse_population_events(config);
     spdlog::info("Configuration file validated successfully");
-
-    // test config
-    spdlog::info("Genotype info:");
-    for (const auto &parasites : get_genotype_parameters().get_initial_parasite_info_raw()) {
-      for (const auto &parasite : parasites.get_parasite_info()) {
-        spdlog::info("{} {}", parasite.get_aa_sequence(), parasite.get_prevalence());
-      }
-    }
-
-    spdlog::debug("Pf genotype info: {}", get_genotype_parameters()
-                                              .get_pf_genotype_info()
-                                              .chromosome_infos.back()
-                                              .get_genes()
-                                              .back()
-                                              .get_cnv_multiplicative_effect_on_EC50()
-                                              .back()
-                                              .get_drug_id());
-    for (const auto &chromosome :
-         get_genotype_parameters().get_pf_genotype_info().chromosome_infos) {
-      if (chromosome.get_chromosome_id() != -1) {
-        spdlog::debug("chromosome:{}", chromosome.get_chromosome_id());
-        for (const auto &genes : chromosome.get_genes()) {
-          spdlog::debug("\tgene:{}", genes.get_name());
-          if (genes.get_max_copies() != -1) {
-            spdlog::debug("\tmax copies:{}", genes.get_max_copies());
-          }
-          if (genes.get_average_daily_crs() != -1) {
-            spdlog::debug("\taverage crs:{}", genes.get_average_daily_crs());
-          }
-          for (const auto &cnv_crs : genes.get_cnv_daily_crs()) {
-            spdlog::debug("\tcnv crs:{}", cnv_crs);
-          }
-          for (const auto &cnv_ec50 : genes.get_cnv_multiplicative_effect_on_EC50()) {
-            spdlog::debug("\tcnv ec50:{}", cnv_ec50.get_drug_id());
-            for (const auto &factor : cnv_ec50.get_factors()) {
-              spdlog::debug("\t\tfactor:{}", factor);
-            }
-          }
-          for (const auto &cnv_ec50 :
-               genes.get_multiplicative_effect_on_ec50_for_2_or_more_mutations()) {
-            spdlog::debug("\tcnv_ec50_2_or_more id:{}", cnv_ec50.get_drug_id());
-            spdlog::debug("\tcnv_ec50_2_or_more factor:{}", cnv_ec50.get_factor());
-          }
-          for (const auto &aa_pos : genes.get_aa_positions()) {
-            // spdlog::debug("\tpos {}",aa_pos.get_position());
-            //   spdlog::debug("\t\taa:{}",aa_pos.get_amino_acids_string());
-            //   spdlog::debug("\t\tcrs:{}",aa_pos.get_daily_crs_string());
-            //   spdlog::debug("\t\tmultiplicative_effect_on_EC50:{}",aa_pos.get_multiplicative_effect_on_EC50_string());
-            for (const auto &aa : aa_pos.get_amino_acids()) { spdlog::debug("\t\taa:{}", aa); }
-            for (const auto &crs : aa_pos.get_daily_crs()) { spdlog::debug("\t\tcrs:{}", crs); }
-            for (const auto &crs : aa_pos.get_multiplicative_effect_on_EC50()) {
-              spdlog::debug("\t\tmultiplicative_effect_on_EC50: {}", crs.get_drug_id());
-              for (const auto &factor : crs.get_factors()) {
-                spdlog::debug("\t\t\tfactor:{}", factor);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    /* Any settings processed using settings from other settings should be called
-     * with setting names rather than process_config()
-     * This is to avoid circular linking of settings
-     * SeasonalitySettings and MovementSettings are examples of such settings
-     */
-
-    model_settings_.process_config();
-    simulation_timeframe_.process_config();
-    transmission_settings_.process_config();
-    population_demographic_.process_config();
-    spatial_settings_.process_config();
-    seasonality_settings_.process_config_using_number_of_locations(
-        Model::get_spatial_data(), get_spatial_settings().get_number_of_locations());
-    movement_settings_.process_config_using_spatial_settings(
-        get_spatial_settings().get_spatial_distance_matrix(),
-        get_spatial_settings().get_number_of_locations());
-    parasite_parameters_.process_config();
-    immune_system_parameters_.process_config_with_parasite_density(
-        get_parasite_parameters()
-            .get_parasite_density_levels()
-            .get_log_parasite_density_asymptomatic(),
-        get_parasite_parameters().get_parasite_density_levels().get_log_parasite_density_cured());
-    /* Drug mut be parsed before genotype */
-    drug_parameters_.process_config();
-    therapy_parameters_.process_config();
-    strategy_parameters_.process_config();
-    genotype_parameters_.process_config_with_number_of_locations(
-        get_spatial_settings().get_number_of_locations());
-    epidemiological_parameters_.process_config();
-    mosquito_parameters_.process_config_using_locations(location_db());
-    if (config["rapt_settings"] && rapt_settings_.get_is_enabled()) {
-      rapt_settings_.process_config_with_starting_date(
-          get_simulation_timeframe().get_starting_date());
-    }
-
-    /*
-     * Parse population events last because it depends on all other settings
-     */
-    population_events_ = config["population_events"].as<PopulationEvents>();
-
-    spdlog::info("Population events parsed successfully");
 
     return true;
   } catch (YAML::BadFile) {
@@ -265,6 +50,229 @@ bool Config::load(const std::string &filename) {
     return false;
   }
   return false;
+}
+
+void Config::reset_load_state() {
+  rapt_settings_ = RaptSettings{};
+  immune_system_parameter_candidates_ = ImmuneSystemParameterCandidates{};
+  has_immune_system_parameter_candidates_ = false;
+  population_events_ = PopulationEvents{};
+}
+
+void Config::parse_configuration(const YAML::Node &config) {
+  model_settings_ = config["model_settings"].as<ModelSettings>();
+  if (model_settings_.get_initial_seed_number() > 0) {
+    Model::get_random()->set_seed(static_cast<uint64_t>(model_settings_.get_initial_seed_number()));
+  }
+
+  simulation_timeframe_ = config["simulation_timeframe"].as<SimulationTimeframe>();
+  transmission_settings_ = config["transmission_settings"].as<TransmissionSettings>();
+  population_demographic_ = config["population_demographic"].as<PopulationDemographic>();
+  spatial_settings_ = config["spatial_settings"].as<SpatialSettings>();
+  seasonality_settings_ = config["seasonality_settings"].as<SeasonalitySettings>();
+  movement_settings_ = config["movement_settings"].as<MovementSettings>();
+  parasite_parameters_ = config["parasite_parameters"].as<ParasiteParameters>();
+  immune_system_parameters_ = config["immune_system_parameters"].as<ImmuneSystemParameters>();
+  genotype_parameters_ = config["genotype_parameters"].as<GenotypeParameters>();
+  drug_parameters_ = config["drug_parameters"].as<DrugParameters>();
+  therapy_parameters_ = config["therapy_parameters"].as<TherapyParameters>();
+  strategy_parameters_ = config["strategy_parameters"].as<StrategyParameters>();
+  epidemiological_parameters_ =
+      config["epidemiological_parameters"].as<EpidemiologicalParameters>();
+  mosquito_parameters_ = config["mosquito_parameters"].as<MosquitoParameters>();
+
+  if (config["rapt_settings"]) { rapt_settings_ = config["rapt_settings"].as<RaptSettings>(); }
+}
+
+void Config::parse_immune_system_parameter_candidates(const YAML::Node &config) {
+  const auto candidates_node = config["immune_system_paprameter_candidates"];
+  if (!candidates_node) {
+    spdlog::info("No immune_system_paprameter_candidates section found — using default parameters");
+    return;
+  }
+
+  spdlog::info("Found immune_system_paprameter_candidates section — parsing candidates");
+  immune_system_parameter_candidates_ = candidates_node.as<ImmuneSystemParameterCandidates>();
+  if (immune_system_parameter_candidates_.get_random_selection()) {
+    select_random_immune_system_parameter_candidate();
+  }
+
+  has_immune_system_parameter_candidates_ = true;
+  immune_system_parameter_candidates_.log_all();
+  apply_selected_immune_system_parameter_candidate();
+}
+
+void Config::select_random_immune_system_parameter_candidate() {
+  const auto &candidates = immune_system_parameter_candidates_.get_candidates();
+  if (candidates.empty()) {
+    spdlog::warn(
+        "immune_system_paprameter_candidates: random_selection=true but candidates is empty "
+        "— skipping random selection");
+    return;
+  }
+
+  std::vector<int> candidate_keys;
+  candidate_keys.reserve(candidates.size());
+  for (const auto &candidate : candidates) { candidate_keys.push_back(candidate.first); }
+
+  const auto pick = static_cast<std::size_t>(
+      Model::get_random()->random_uniform(static_cast<uint64_t>(candidate_keys.size())));
+  const int selected_idx = candidate_keys[pick];
+  immune_system_parameter_candidates_.set_used_in_simulation(selected_idx);
+  spdlog::info(
+      "immune_system_paprameter_candidates: random_selection=true, num_candidates={}, "
+      "sampled used_in_simulation={}",
+      candidate_keys.size(), selected_idx);
+}
+
+void Config::apply_selected_immune_system_parameter_candidate() {
+  if (!immune_system_parameter_candidates_.has_selected_candidate()) {
+    spdlog::warn(
+        "immune_system_paprameter_candidates: used_in_simulation={} not found in "
+        "candidates — no overrides applied",
+        immune_system_parameter_candidates_.get_used_in_simulation());
+    return;
+  }
+
+  const auto &candidate = immune_system_parameter_candidates_.get_selected_candidate();
+  const int candidate_id = immune_system_parameter_candidates_.get_used_in_simulation();
+  spdlog::info("Applying candidate[{}] overrides:", candidate_id);
+  spdlog::info("  p_ci_symp={}  -> allow_new_coinfection_to_cause_symptoms.probability",
+               candidate.p_ci_symp);
+  spdlog::info(
+      "  z={}          -> immune_system_parameters.immune_effect_on_progression_to_clinical",
+      candidate.z);
+  spdlog::info("  kappa={}      -> immune_system_parameters.factor_effect_age_mature_immunity",
+               candidate.kappa);
+  spdlog::info("  midpoint={}   -> immune_system_parameters.midpoint", candidate.midpoint);
+  spdlog::info(
+      "  p_seek_base={} -> "
+      "epidemiological_parameters.age_based_probability_of_seeking_treatment.power.base",
+      candidate.p_seek_base);
+  spdlog::info("  mutation_probability_per_locus={} -> genotype_parameters (skipped if -1)",
+               candidate.mutation_probability_per_locus);
+
+  immune_system_parameters_.set_immune_effect_on_progression_to_clinical(candidate.z);
+  immune_system_parameters_.set_factor_effect_age_mature_immunity(candidate.kappa);
+  immune_system_parameters_.set_midpoint(candidate.midpoint);
+
+  auto coinfection = epidemiological_parameters_.get_allow_new_coinfection_to_cause_symptoms();
+  coinfection.set_probability(candidate.p_ci_symp);
+  epidemiological_parameters_.set_allow_new_coinfection_to_cause_symptoms(coinfection);
+
+  auto age_based = epidemiological_parameters_.get_age_based_probability_of_seeking_treatment();
+  auto power = age_based.get_power();
+  power.base = candidate.p_seek_base;
+  age_based.set_power(power);
+  epidemiological_parameters_.set_age_based_probability_of_seeking_treatment(age_based);
+
+  if (candidate.mutation_probability_per_locus >= 0.0) {
+    genotype_parameters_.set_mutation_probability_per_locus(
+        candidate.mutation_probability_per_locus);
+    spdlog::info("  mutation_probability_per_locus overridden to {}",
+                 genotype_parameters_.get_mutation_probability_per_locus());
+  } else {
+    spdlog::info("  mutation_probability_per_locus=-1 -> keeping default {}",
+                 genotype_parameters_.get_mutation_probability_per_locus());
+  }
+
+  spdlog::info("Candidate[{}] overrides applied successfully", candidate_id);
+}
+
+void Config::log_genotype_configuration() const {
+  spdlog::info("Genotype info:");
+  for (const auto &parasites : genotype_parameters_.get_initial_parasite_info_raw()) {
+    for (const auto &parasite : parasites.get_parasite_info()) {
+      spdlog::info("{} {}", parasite.get_aa_sequence(), parasite.get_prevalence());
+    }
+  }
+
+  for (const auto &chromosome : genotype_parameters_.get_pf_genotype_info().chromosome_infos) {
+    log_chromosome_configuration(chromosome);
+  }
+}
+
+void Config::log_chromosome_configuration(const GenotypeParameters::ChromosomeInfo &chromosome) {
+  if (chromosome.get_chromosome_id() == -1) { return; }
+
+  spdlog::debug("chromosome:{}", chromosome.get_chromosome_id());
+  for (const auto &gene : chromosome.get_genes()) { log_gene_configuration(gene); }
+}
+
+void Config::log_gene_configuration(const GenotypeParameters::GeneInfo &gene) {
+  spdlog::debug("\tgene:{}", gene.get_name());
+  if (gene.get_max_copies() != -1) { spdlog::debug("\tmax copies:{}", gene.get_max_copies()); }
+  if (gene.get_average_daily_crs() != -1) {
+    spdlog::debug("\taverage crs:{}", gene.get_average_daily_crs());
+  }
+  for (const auto cnv_crs : gene.get_cnv_daily_crs()) { spdlog::debug("\tcnv crs:{}", cnv_crs); }
+  for (const auto &cnv_ec50 : gene.get_cnv_multiplicative_effect_on_EC50()) {
+    spdlog::debug("\tcnv ec50:{}", cnv_ec50.get_drug_id());
+    for (const auto factor : cnv_ec50.get_factors()) { spdlog::debug("\t\tfactor:{}", factor); }
+  }
+  for (const auto &cnv_ec50 : gene.get_multiplicative_effect_on_ec50_for_2_or_more_mutations()) {
+    spdlog::debug("\tcnv_ec50_2_or_more id:{}", cnv_ec50.get_drug_id());
+    spdlog::debug("\tcnv_ec50_2_or_more factor:{}", cnv_ec50.get_factor());
+  }
+  for (const auto &amino_acid_position : gene.get_aa_positions()) {
+    log_amino_acid_position_configuration(amino_acid_position);
+  }
+}
+
+void Config::log_amino_acid_position_configuration(
+    const GenotypeParameters::AminoAcidPosition &amino_acid_position) {
+  for (const auto &amino_acid : amino_acid_position.get_amino_acids()) {
+    spdlog::debug("\t\taa:{}", amino_acid);
+  }
+  for (const auto daily_crs : amino_acid_position.get_daily_crs()) {
+    spdlog::debug("\t\tcrs:{}", daily_crs);
+  }
+  for (const auto &effect : amino_acid_position.get_multiplicative_effect_on_EC50()) {
+    spdlog::debug("\t\tmultiplicative_effect_on_EC50: {}", effect.get_drug_id());
+    for (const auto factor : effect.get_factors()) { spdlog::debug("\t\t\tfactor:{}", factor); }
+  }
+}
+
+void Config::process_configuration(const YAML::Node &config) {
+  // Settings that depend on other settings use explicit processing methods to
+  // avoid circular dependencies.
+  model_settings_.process_config();
+  simulation_timeframe_.process_config();
+  transmission_settings_.process_config();
+  population_demographic_.process_config();
+  spatial_settings_.process_config();
+  seasonality_settings_.process_config_using_number_of_locations(
+      Model::get_spatial_data(), get_spatial_settings().get_number_of_locations());
+  movement_settings_.process_config_using_spatial_settings(
+      get_spatial_settings().get_spatial_distance_matrix(),
+      get_spatial_settings().get_number_of_locations());
+  parasite_parameters_.process_config();
+  immune_system_parameters_.process_config_with_parasite_density(
+      get_parasite_parameters()
+          .get_parasite_density_levels()
+          .get_log_parasite_density_asymptomatic(),
+      get_parasite_parameters().get_parasite_density_levels().get_log_parasite_density_cured());
+
+  // Drugs must be processed before genotype parameters.
+  drug_parameters_.process_config();
+  therapy_parameters_.process_config();
+  strategy_parameters_.process_config();
+  genotype_parameters_.process_config_with_number_of_locations(
+      get_spatial_settings().get_number_of_locations());
+  epidemiological_parameters_.process_config();
+  mosquito_parameters_.process_config_using_locations(location_db());
+
+  if (config["rapt_settings"] && rapt_settings_.get_is_enabled()) {
+    rapt_settings_.process_config_with_starting_date(
+        get_simulation_timeframe().get_starting_date());
+  }
+}
+
+void Config::parse_population_events(const YAML::Node &config) {
+  // Population events depend on all processed settings and must be parsed last.
+  population_events_ = config["population_events"].as<PopulationEvents>();
+  validate_population_events();
+  spdlog::info("Population events parsed successfully");
 }
 
 size_t Config::number_of_parasite_types() { return Model::get_genotype_db()->size(); }
@@ -295,6 +303,25 @@ std::vector<Spatial::Location> &Config::location_db() { return spatial_settings_
 
 void Config::validate_all_cross_field_validations() {
   spdlog::info("Validating all cross field validations");
+  validate_model_settings();
+  validate_simulation_timeframe();
+  validate_transmission_settings();
+  validate_population_demographic();
+  validate_spatial_settings();
+  validate_seasonality_settings();
+  validate_movement_settings();
+  validate_parasite_parameters();
+  validate_immune_system_parameters();
+  validate_genotype_parameters();
+  validate_drug_parameters();
+  const int therapy_max_dosing_days = validate_therapy_parameters();
+  validate_strategy_parameters();
+  validate_epidemiological_parameters(therapy_max_dosing_days);
+  validate_mosquito_parameters();
+  validate_population_events();
+}
+
+void Config::validate_model_settings() const {
   /*----------------------------
   Validate model settings
   ----------------------------*/
@@ -302,7 +329,9 @@ void Config::validate_all_cross_field_validations() {
   if (model_settings_.get_days_between_stdout_output() < 0) {
     throw std::invalid_argument("Days between stdout output should be a positive number");
   }
+}
 
+void Config::validate_simulation_timeframe() const {
   /*----------------------------
   Validate simulation timeframe
   ----------------------------*/
@@ -322,7 +351,9 @@ void Config::validate_all_cross_field_validations() {
   if (simulation_timeframe.get_start_collect_data_day() < 0) {
     throw std::invalid_argument("Start collect data day should be greater than or equal to 0");
   }
+}
 
+void Config::validate_transmission_settings() const {
   /*----------------------------
   Validate transmission settings
   ----------------------------*/
@@ -337,7 +368,9 @@ void Config::validate_all_cross_field_validations() {
       || transmission_settings.get_p_infection_from_an_infectious_bite() > 1) {
     throw std::invalid_argument("P infection from an infectious bite should be in range [0,1]");
   }
+}
 
+void Config::validate_population_demographic() const {
   /*----------------------------
   Validate population demographic
   ----------------------------*/
@@ -386,12 +419,16 @@ void Config::validate_all_cross_field_validations() {
     throw std::invalid_argument(
         "Artificial rescaling of population size should be a positive number");
   }
+}
 
+void Config::validate_spatial_settings() {
   /*----------------------------
   Validate spatial settings
   ----------------------------*/
   spatial_settings_.cross_validate();
+}
 
+void Config::validate_seasonality_settings() {
   /*----------------------------
   Validate seasonality settings
   ----------------------------*/
@@ -417,7 +454,9 @@ void Config::validate_all_cross_field_validations() {
           "Ecoclimatic raster should be provided for equation based seasonality.");
     }
   }
+}
 
+void Config::validate_movement_settings() const {
   /*----------------------------
   Validate movement settings
   ----------------------------*/
@@ -477,7 +516,9 @@ void Config::validate_all_cross_field_validations() {
   if (circulation_info.get_circulation_percent() < 0) {
     throw std::invalid_argument("Circulation percent cannot be negative");
   }
+}
 
+void Config::validate_parasite_parameters() const {
   /*----------------------------
   Validate parasite parameters
   ----------------------------*/
@@ -510,7 +551,9 @@ void Config::validate_all_cross_field_validations() {
              > 1) {
     throw std::invalid_argument("Within_chromosome_recombination_rate should be in range [0,1]");
   }
+}
 
+void Config::validate_immune_system_parameters() const {
   /*----------------------------
   Validate immune system parameters
   ----------------------------*/
@@ -530,7 +573,9 @@ void Config::validate_all_cross_field_validations() {
       || immune_system_parameters.get_midpoint() < 0) {
     throw std::invalid_argument("All immune system parameters should be positive numbers");
   }
+}
 
+void Config::validate_genotype_parameters() const {
   /*----------------------------
   Validate genotype parameters
   ----------------------------*/
@@ -570,7 +615,9 @@ void Config::validate_all_cross_field_validations() {
       }
     }
   }
+}
 
+void Config::validate_drug_parameters() const {
   /*----------------------------
   Validate drug parameters
   ----------------------------*/
@@ -587,18 +634,20 @@ void Config::validate_all_cross_field_validations() {
       throw std::invalid_argument("Maximum parasite killing rate should be in range [0,1]");
     }
     if (drug.second.get_age_specific_drug_concentration_sd().size()
-        != population_demographic.get_number_of_age_classes()) {
+        != population_demographic_.get_number_of_age_classes()) {
       throw std::invalid_argument(
           "Age specific drug concentration size should match number of age classes");
     }
     if (drug.second.get_age_specific_drug_absorption().size() > 0
         && drug.second.get_age_specific_drug_absorption().size()
-               != population_demographic.get_number_of_age_classes()) {
+               != population_demographic_.get_number_of_age_classes()) {
       throw std::invalid_argument(
           "Age specific drug absorption size should match number of age classes");
     }
   }
+}
 
+int Config::validate_therapy_parameters() const {
   /*----------------------------
   Validate therapy parameters
   ----------------------------*/
@@ -628,9 +677,17 @@ void Config::validate_all_cross_field_validations() {
       }
     }
   }
+  return therapy_max_dosing_days;
+}
 
+void Config::validate_strategy_parameters() const {
+  validate_strategy_database_ids();
+  validate_public_private_strategies();
+}
+
+void Config::validate_strategy_database_ids() const {
   /*----------------------------
-  Validate strategy parameters
+  Validate strategy database ids
   ----------------------------*/
   StrategyParameters strategy_parameters = strategy_parameters_;
   // Check if initial_strategy_id is in strategy_db keys
@@ -643,12 +700,10 @@ void Config::validate_all_cross_field_validations() {
       && !strategy_parameters.get_strategy_db_raw().contains(second_line_strategy_id)) {
     throw std::invalid_argument("Second line strategy id should be -1 or in strategy db keys");
   }
+}
 
-  const auto validate_share = [](const double share, const std::string &field_name) {
-    if (!std::isfinite(share) || share < 0.0 || share > 1.0) {
-      throw std::invalid_argument(field_name + " must be finite and in [0,1]");
-    }
-  };
+void Config::validate_public_private_strategies() const {
+  StrategyParameters strategy_parameters = strategy_parameters_;
   for (const auto &[strategy_id, strategy] : strategy_parameters.get_strategy_db_raw()) {
     if (strategy.get_type() != "PublicPrivate"
         && strategy.get_type() != "PublicPrivateMultiLocation") {
@@ -690,9 +745,17 @@ void Config::validate_all_cross_field_validations() {
       validate_share(share, "peak_public_share_by_location");
     }
   }
+}
 
+void Config::validate_epidemiological_parameters(const int therapy_max_dosing_days) const {
+  validate_epidemiological_treatment_parameters(therapy_max_dosing_days);
+  validate_epidemiological_transmission_parameters();
+}
+
+void Config::validate_epidemiological_treatment_parameters(
+    const int therapy_max_dosing_days) const {
   /*----------------------------
-  Validate epidemiological parameters
+  Validate epidemiological treatment parameters
   ----------------------------*/
   EpidemiologicalParameters epidemiological_parameters = epidemiological_parameters_;
   // Check if number_of_tracking_days is a positive number
@@ -741,6 +804,13 @@ void Config::validate_all_cross_field_validations() {
       || epidemiological_parameters.get_p_relapse() > 1) {
     throw std::invalid_argument("P relapse should be in range [0,1]");
   }
+}
+
+void Config::validate_epidemiological_transmission_parameters() const {
+  /*----------------------------
+  Validate epidemiological transmission parameters
+  ----------------------------*/
+  EpidemiologicalParameters epidemiological_parameters = epidemiological_parameters_;
   // Check if relapse_duration is a positive number
   if (epidemiological_parameters.get_relapse_duration() < 0) {
     throw std::invalid_argument("Relapse duration should be a positive number");
@@ -787,7 +857,9 @@ void Config::validate_all_cross_field_validations() {
       || relative_infectivity.get_blood_meal_volume() <= 0) {
     throw std::invalid_argument("Relative infectivity should be positive numbers");
   }
+}
 
+void Config::validate_mosquito_parameters() const {
   /*----------------------------
   Validate mosquito parameters
   ----------------------------*/
@@ -823,10 +895,9 @@ void Config::validate_all_cross_field_validations() {
           "Number of locations for interrupted feeding rate and prmc size should be equal");
     }
   }
+}
 
-  /*----------------------------
-  Validate population events
-  ----------------------------*/
+void Config::validate_population_events() const {
   // Loop through all events
   for (const auto &population_event : population_events_.get_events_raw()) {
     // Check if name is provided
@@ -835,8 +906,8 @@ void Config::validate_all_cross_field_validations() {
     }
     for (auto event_info : population_event.get_info()) {
       // Check if event date is valid
-      if (event_info.get_date() < simulation_timeframe.get_starting_date()
-          || event_info.get_date() > simulation_timeframe.get_ending_date()) {
+      if (event_info.get_date() < simulation_timeframe_.get_starting_date()
+          || event_info.get_date() > simulation_timeframe_.get_ending_date()) {
         throw std::invalid_argument(
             "Event date should be in between simulation starting and ending date");
       }

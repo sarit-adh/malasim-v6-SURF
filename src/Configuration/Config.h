@@ -26,12 +26,12 @@
 class Config {
 public:
   // Disallow copy
-  Config(const Config&) = delete;
-  Config& operator=(const Config&) = delete;
+  Config(const Config &) = delete;
+  Config &operator=(const Config &) = delete;
 
   // Disallow move
-  Config(Config&&) = delete;
-  Config& operator=(Config&&) = delete;
+  Config(Config &&) = delete;
+  Config &operator=(Config &&) = delete;
 
   // Constructor and Destructor
   Config() = default;
@@ -96,7 +96,8 @@ public:
     immune_system_parameters_ = parameters;
   }
 
-  [[nodiscard]] const ImmuneSystemParameterCandidates &get_immune_system_parameter_candidates() const {
+  [[nodiscard]] const ImmuneSystemParameterCandidates &get_immune_system_parameter_candidates()
+      const {
     return immune_system_parameter_candidates_;
   }
   [[nodiscard]] bool has_immune_system_parameter_candidates() const {
@@ -126,6 +127,39 @@ public:
   // GenotypeDatabase* genotype_db();
 
 private:
+  void reset_load_state();
+  void parse_configuration(const YAML::Node &config);
+  void parse_immune_system_parameter_candidates(const YAML::Node &config);
+  void select_random_immune_system_parameter_candidate();
+  void apply_selected_immune_system_parameter_candidate();
+  void log_genotype_configuration() const;
+  static void log_chromosome_configuration(const GenotypeParameters::ChromosomeInfo &chromosome);
+  static void log_gene_configuration(const GenotypeParameters::GeneInfo &gene);
+  static void log_amino_acid_position_configuration(
+      const GenotypeParameters::AminoAcidPosition &amino_acid_position);
+  void process_configuration(const YAML::Node &config);
+  void parse_population_events(const YAML::Node &config);
+  void validate_model_settings() const;
+  void validate_simulation_timeframe() const;
+  void validate_transmission_settings() const;
+  void validate_population_demographic() const;
+  void validate_spatial_settings();
+  void validate_seasonality_settings();
+  void validate_movement_settings() const;
+  void validate_parasite_parameters() const;
+  void validate_immune_system_parameters() const;
+  void validate_genotype_parameters() const;
+  void validate_drug_parameters() const;
+  [[nodiscard]] int validate_therapy_parameters() const;
+  void validate_strategy_parameters() const;
+  void validate_strategy_database_ids() const;
+  void validate_public_private_strategies() const;
+  void validate_epidemiological_parameters(int therapy_max_dosing_days) const;
+  void validate_epidemiological_treatment_parameters(int therapy_max_dosing_days) const;
+  void validate_epidemiological_transmission_parameters() const;
+  void validate_mosquito_parameters() const;
+  void validate_population_events() const;
+
   // Template method for getting a field
   template <typename T>
   [[nodiscard]] const T &get_field(const T &field) const {
