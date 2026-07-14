@@ -243,98 +243,121 @@ parasite_parameters:
     using_free_recombination: true
 
 # ---------------------------------------------------------------
-# 9. Immune System Parameters
+# Immune System Parameter Overrides
 # ---------------------------------------------------------------
-# This is candidates for immunity parameters,
-# if this section is present in configuration,
-# the simulation will read this config and override immune system parameters with the selected candidate.
-# The mapping is:
-#  1. p_ci_symp: probability of clinical symptoms given infection,
-#  The value to override is probability in
-#    allow_new_coinfection_to_cause_symptoms:
-#      enable: true
-#      # Probability that a new co-infection causes symptoms in an already infected host
-#      probability: 1.0
-#  2. z,kappa,midpoint:
-#  The value to override is immune_effect_on_progression_to_clinical,
-#  factor_effect_age_mature_immunity and midpoint in
-#    immune_system_parameters:
-#      ...
-#      immune_effect_on_progression_to_clinical: 5.4 # Slope of the sigmoidal probability vs. immunity function (z)
-#      ...
-#      factor_effect_age_mature_immunity: 0.3 # Adjusts the inflection point in the curve (kappa)
-#      midpoint: 0.4 # Midpoint for the immunity curve
-#  3. p_seek_base: probability of seeking treatment when symptomatic
-#  The value to override is base in
-#    epidemiological_parameters:
-#      age_based_probability_of_seeking_treatment:
-#        enable: true
-#        type: power
-#        power:
-#          base: 1.0
-#          exponent_source: index
-#        ages: [0, 5, 10, 15, 20, 30, 40]
-#  4. mutation_probability_per_locus: daily per-locus mutation probability.
-#  If absent or set to -1, the value from genotype_parameters.mutation_probability_per_locus is used unchanged.
-#  Otherwise, overrides genotype_parameters:
-#    genotype_parameters:
-#      mutation_probability_per_locus: 0.001
-# If this section is not present, the simulation will use the default immune system parameters in immune_system_parameters section.
-immune_system_paprameter_candidates:
+
+# Optional section. When present, the simulation applies one candidate's
+# key-value overrides on top of the values already loaded from the rest of
+# the config file. If this section is absent, all parameters come from their
+# respective sections (immune_system_parameters, epidemiological_parameters,
+# genotype_parameters) unchanged.
+#
+# Selection:
+#   used_in_simulation: <int>   — index of the candidate to apply.
+#   random_selection: true/false — if true, a candidate is picked uniformly
+#       at random at startup (overrides used_in_simulation).
+#
+# Candidate format:
+#   Each candidate is a map of "config-path": value entries.
+#   A config-path is a colon-separated sequence of YAML key names that
+#   identifies the target field in the config (must be quoted because of the
+#   colons). Only paths listed below are recognized by the simulation.
+#
+# Supported override paths and what they control:
+#   "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability"
+#       → probability that a new co-infection causes symptoms in an already-
+#         infected but asymptomatic host.
+#
+#   "immune_system_parameters:immune_effect_on_progression_to_clinical"
+#       → slope (z) of the sigmoidal immunity-vs-probability-of-symptoms curve.
+#
+#   "immune_system_parameters:factor_effect_age_mature_immunity"
+#       → kappa: adjusts the inflection point of the age-maturity curve.
+#
+#   "immune_system_parameters:midpoint"
+#       → midpoint of the immunity sigmoidal curve.
+#
+#   "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base"
+#       → base of the power function used to scale treatment-seeking probability
+#         by age (multiplied by base^age_index after the coverage model).
+#
+#   "genotype_parameters:mutation_probability_per_locus"
+#       → daily per-locus mutation probability when drug concentration > 0.
+#         If the key is absent or its value is < 0, the value from
+#         genotype_parameters.mutation_probability_per_locus is kept unchanged.
+#
+#   "genotype_parameters:default_cnv_reversion_multiplier"
+#       → default daily reversion multiplier for copy-number variants (CNV).
+#         If absent or < 0, the value from genotype_parameters is kept unchanged.
+#
+# Any override key that is absent from a candidate leaves the corresponding
+# parameter at its config-file default — partial override sets are valid.
+immune_system_parameter_overrides:
   used_in_simulation: 0
   # random_selection will override used_in_simulation, if true,
   # the simulation will randomly select one of the candidates to use in the simulation.
   random_selection: false
   candidates:
     0: #5 in Fig 12 (highest p_seek_base)
-      p_ci_symp: 0.5
-      z: 3.0
-      kappa: 0.1
-      midpoint: 0.2
-      p_seek_base: 0.8
-      mutation_probability_per_locus: 0.00085
+      "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability": 0.5
+      "immune_system_parameters:immune_effect_on_progression_to_clinical": 3.0
+      "immune_system_parameters:factor_effect_age_mature_immunity": 0.1
+      "immune_system_parameters:midpoint": 0.2
+      "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base": 0.8
+      "genotype_parameters:mutation_probability_per_locus": 0.00085
+      "genotype_parameters:default_cnv_reversion_multiplier": 0.1
     1: #1 in Fig 9 (top-1)
-      p_ci_symp: 0.6
-      z: 3.0
-      kappa: 0.1
-      midpoint: 0.15
-      p_seek_base: 0.6
-      mutation_probability_per_locus: 0.00095
+      "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability": 0.6
+      "immune_system_parameters:immune_effect_on_progression_to_clinical": 3.0
+      "immune_system_parameters:factor_effect_age_mature_immunity": 0.1
+      "immune_system_parameters:midpoint": 0.15
+      "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base": 0.6
+      "genotype_parameters:mutation_probability_per_locus": 0.00095
+      "genotype_parameters:default_cnv_reversion_multiplier": 0.0
     2: #1 in Fig 10 (top-1)
-      p_ci_symp: 0.7
-      z: 1.0
-      kappa: 1.0
-      midpoint: 0.04
-      p_seek_base: 0.6
-      mutation_probability_per_locus: 0.0006
+      "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability": 0.7
+      "immune_system_parameters:immune_effect_on_progression_to_clinical": 1.0
+      "immune_system_parameters:factor_effect_age_mature_immunity": 1.0
+      "immune_system_parameters:midpoint": 0.04
+      "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base": 0.6
+      "genotype_parameters:mutation_probability_per_locus": 0.0006
+      "genotype_parameters:default_cnv_reversion_multiplier": 0.0
     3: #1 in Fig 11 (top-1)
-      p_ci_symp: 0.6
-      z: 3.0
-      kappa: 0.1
-      midpoint: 0.15
-      p_seek_base: 0.6
-      mutation_probability_per_locus: 0.00055
+      "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability": 0.6
+      "immune_system_parameters:immune_effect_on_progression_to_clinical": 3.0
+      "immune_system_parameters:factor_effect_age_mature_immunity": 0.1
+      "immune_system_parameters:midpoint": 0.15
+      "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base": 0.6
+      "genotype_parameters:mutation_probability_per_locus": 0.00055
+      "genotype_parameters:default_cnv_reversion_multiplier": 0.0
     4: #5 in Fig 9 (highest p_ci_symp)
-      p_ci_symp: 1.0
-      z: 1.5
-      kappa: 0.5
-      midpoint: 0.1
-      p_seek_base: 0.65
-      mutation_probability_per_locus: 0.0009
+      "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability": 1.0
+      "immune_system_parameters:immune_effect_on_progression_to_clinical": 1.5
+      "immune_system_parameters:factor_effect_age_mature_immunity": 0.5
+      "immune_system_parameters:midpoint": 0.1
+      "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base": 0.65
+      "genotype_parameters:mutation_probability_per_locus": 0.0009
+      "genotype_parameters:default_cnv_reversion_multiplier": 0.0
     5: #2 in Fig 10 (highest p_seek_base)
-      p_ci_symp: 0.5
-      z: 1.5
-      kappa: 0.5
-      midpoint: 0.1
-      p_seek_base: 0.75
-      mutation_probability_per_locus: 0.00095
+      "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability": 0.5
+      "immune_system_parameters:immune_effect_on_progression_to_clinical": 1.5
+      "immune_system_parameters:factor_effect_age_mature_immunity": 0.5
+      "immune_system_parameters:midpoint": 0.1
+      "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base": 0.75
+      "genotype_parameters:mutation_probability_per_locus": 0.00095
+      "genotype_parameters:default_cnv_reversion_multiplier": 0.0
     6: #9 in Fig 9/10 (highest incidence)
-      p_ci_symp: 0.5
-      z: 3.5
-      kappa: 7.5
-      midpoint: 0.2
-      p_seek_base: 0.6
-      mutation_probability_per_locus: 0.00050
+      "epidemiological_parameters:allow_new_coinfection_to_cause_symptoms:probability": 0.5
+      "immune_system_parameters:immune_effect_on_progression_to_clinical": 3.5
+      "immune_system_parameters:factor_effect_age_mature_immunity": 7.5
+      "immune_system_parameters:midpoint": 0.2
+      "epidemiological_parameters:age_based_probability_of_seeking_treatment:power:base": 0.6
+      "genotype_parameters:mutation_probability_per_locus": 0.00050
+      "genotype_parameters:default_cnv_reversion_multiplier": 0.0
+
+# ---------------------------------------------------------------
+# 9. Immune System Parameter
+# ---------------------------------------------------------------
 
 immune_system_parameters:
   # Parameters governing the immune response
@@ -403,9 +426,9 @@ genotype_parameters:
               daily_crs: [0, 0.0005]
               multiplicative_effect_on_EC50:
                 - drug_id: 2
-                  factors: [1, 1]
+                  factors: [1, 1.2]
                 - drug_id: 6
-                  factors: [1, 1]
+                  factors: [1, 1.2]
     - chromosome: 7
       genes:
         - name: "Pfcrt"

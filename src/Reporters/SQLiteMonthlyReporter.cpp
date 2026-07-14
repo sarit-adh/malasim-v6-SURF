@@ -9,6 +9,7 @@
 #include "Population/Population.h"
 #include "Simulation//Model.h"
 #include "Spatial/GIS/SpatialData.h"
+#include "Utils/Helpers/StringHelpers.h"
 #include "Utils/Index/PersonIndexByLocationStateAgeClass.h"
 
 // Initialize the reporter
@@ -46,6 +47,78 @@ void SQLiteMonthlyReporter::initialize(int job_number, const std::string &path) 
   monthly_site_data_by_level.resize(admin_level_count + 1);
   monthly_genome_data_by_level.resize(admin_level_count + 1);
   CELL_LEVEL_ID = admin_level_count;
+
+  // Persist the immune_system_parameter_overrides values that are actually in
+  // effect. At this point the config has been fully parsed and the selected
+  // candidate has already been applied (Config::apply_selected_immune_system_
+  // parameter_candidate runs during config load), and the simulation has not
+  // started yet, so this captures exactly what the run will use.
+  create_and_populate_configuration_table();
+}
+
+void SQLiteMonthlyReporter::create_and_populate_configuration_table() {
+  if (db == nullptr) { return; }
+
+  try {
+    TransactionGuard transaction{db.get()};
+
+    // Single flat key/value table so the applied configuration can be read
+    // straight from the output database.
+    const std::string create_configuration = R""""(
+      CREATE TABLE IF NOT EXISTS configuration (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          section TEXT NOT NULL,
+          key TEXT NOT NULL,
+          value TEXT NOT NULL
+      );
+    )"""";
+    db->execute(create_configuration);
+    // Start clean in case an existing db is being reused.
+    db->execute("DELETE FROM configuration;");
+
+    const std::string section = "immune_system_parameter_overrides";
+    const auto &candidates = Model::get_config()->get_immune_system_parameter_overrides();
+
+    std::vector<std::string> rows;
+
+    // Helper: escape single quotes and append one (section, key, value) row.
+    auto add_row = [&](const std::string &key, const std::string &value) {
+      std::string escaped_key = key;
+      std::string escaped_value = value;
+      StringHelpers::replace_all(escaped_key, "'", "''");
+      StringHelpers::replace_all(escaped_value, "'", "''");
+      rows.push_back(fmt::format("('{}', '{}', '{}')", section, escaped_key, escaped_value));
+    };
+
+    // Record whether the overrides section was present at all.
+    add_row("section_present",
+            Model::get_config()->has_immune_system_parameter_overrides() ? "true" : "false");
+    // Metadata: which candidate was selected and whether it was random.
+    add_row("used_in_simulation", std::to_string(candidates.get_used_in_simulation()));
+    add_row("random_selection", candidates.get_random_selection() ? "true" : "false");
+
+    // The actual override key/value pairs of the selected candidate.
+    if (candidates.has_selected_candidate()) {
+      const auto &selected = candidates.get_selected_candidate();
+      for (const auto &[path, val] : selected.overrides) {
+        // fmt's default float formatting emits the shortest round-trippable
+        // representation (e.g. 0.00085 rather than 0.00085000000000000004).
+        add_row(path, fmt::format("{}", val));
+      }
+    } else {
+      spdlog::info(
+          "SQLiteMonthlyReporter: no selected immune_system_parameter_overrides candidate "
+          "(used_in_simulation={}); recording metadata only.",
+          candidates.get_used_in_simulation());
+    }
+
+    const std::string query_prefix =
+        "INSERT INTO configuration (section, key, value) VALUES ";
+    batch_insert_query(query_prefix, rows);
+
+    spdlog::info("SQLiteMonthlyReporter: recorded {} '{}' configuration rows.", rows.size(),
+                 section);
+  } catch (const std::exception &ex) { spdlog::error("{}:\n{}", __FUNCTION__, ex.what()); }
 }
 
 void SQLiteMonthlyReporter::count_infections_for_location(int level_id, int location_id) {

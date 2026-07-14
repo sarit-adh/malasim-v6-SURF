@@ -34,7 +34,7 @@ static YAML::Node make_candidate_yaml_node(double p_ci_symp, double z, double ka
   return YAML::Load(ss.str());
 }
 
-class YamlImmuneSystemParameterOverridesTest : public ::testing::Test {
+class ImmuneSystemParameterOverridesTest : public ::testing::Test {
 protected:
   // Builds a standard 3-candidate node (keys 0, 1, 4) using full-path keys.
   // Both genotype override keys are omitted by default (absent from map).
@@ -62,7 +62,7 @@ protected:
 };
 
 // Decode a valid candidates block and check values
-TEST_F(YamlImmuneSystemParameterOverridesTest, DecodesValidCandidates) {
+TEST_F(ImmuneSystemParameterOverridesTest, DecodesValidCandidates) {
   auto node = make_candidates_node(1);
   ImmuneSystemParameterOverrides result;
   EXPECT_NO_THROW(YAML::convert<ImmuneSystemParameterOverrides>::decode(node, result));
@@ -95,7 +95,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, DecodesValidCandidates) {
 }
 
 // Decodes candidates that include both genotype override keys (matches sample_inputs/input.yml)
-TEST_F(YamlImmuneSystemParameterOverridesTest, DecodesFullGenotypeOverrides) {
+TEST_F(ImmuneSystemParameterOverridesTest, DecodesFullGenotypeOverrides) {
   auto node = make_candidates_node(0, false,
                                    /*include_mutation_prob=*/true, /*mutation_prob=*/0.00085,
                                    /*include_cnv_mult=*/true,      /*cnv_mult=*/0.1);
@@ -115,7 +115,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, DecodesFullGenotypeOverrides) {
 }
 
 // has_selected_candidate returns true for a present index
-TEST_F(YamlImmuneSystemParameterOverridesTest, HasSelectedCandidateTrue) {
+TEST_F(ImmuneSystemParameterOverridesTest, HasSelectedCandidateTrue) {
   auto node = make_candidates_node(0);
   ImmuneSystemParameterOverrides result;
   YAML::convert<ImmuneSystemParameterOverrides>::decode(node, result);
@@ -128,7 +128,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, HasSelectedCandidateTrue) {
 }
 
 // has_selected_candidate returns false when used_in_simulation is missing
-TEST_F(YamlImmuneSystemParameterOverridesTest, HasSelectedCandidateFalseWhenMissing) {
+TEST_F(ImmuneSystemParameterOverridesTest, HasSelectedCandidateFalseWhenMissing) {
   auto node = make_candidates_node(99);  // index 99 not in candidates
   ImmuneSystemParameterOverrides result;
   YAML::convert<ImmuneSystemParameterOverrides>::decode(node, result);
@@ -143,7 +143,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, HasSelectedCandidateFalseWhenMiss
 }
 
 // Encode round-trips back to decodable YAML (with both genotype keys)
-TEST_F(YamlImmuneSystemParameterOverridesTest, EncodeDecodeRoundtrip) {
+TEST_F(ImmuneSystemParameterOverridesTest, EncodeDecodeRoundtrip) {
   auto node = make_candidates_node(0, false,
                                    /*include_mutation_prob=*/true, /*mutation_prob=*/0.00085,
                                    /*include_cnv_mult=*/true,      /*cnv_mult=*/0.0);
@@ -168,7 +168,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, EncodeDecodeRoundtrip) {
 }
 
 // random_selection is parsed and preserved by encode/decode
-TEST_F(YamlImmuneSystemParameterOverridesTest, RandomSelectionRoundtrip) {
+TEST_F(ImmuneSystemParameterOverridesTest, RandomSelectionRoundtrip) {
   auto node = make_candidates_node(0, true);
   ImmuneSystemParameterOverrides original;
   YAML::convert<ImmuneSystemParameterOverrides>::decode(node, original);
@@ -183,7 +183,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, RandomSelectionRoundtrip) {
 }
 
 // random_selection defaults to false when omitted
-TEST_F(YamlImmuneSystemParameterOverridesTest, RandomSelectionDefaultsToFalseWhenMissing) {
+TEST_F(ImmuneSystemParameterOverridesTest, RandomSelectionDefaultsToFalseWhenMissing) {
   auto node = make_candidates_node(0);
   node.remove("random_selection");
 
@@ -193,7 +193,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, RandomSelectionDefaultsToFalseWhe
 }
 
 // Missing 'used_in_simulation' throws
-TEST_F(YamlImmuneSystemParameterOverridesTest, MissingUsedInSimulationThrows) {
+TEST_F(ImmuneSystemParameterOverridesTest, MissingUsedInSimulationThrows) {
   YAML::Node node;
   node["candidates"] = YAML::Node(YAML::NodeType::Map);
   ImmuneSystemParameterOverrides result;
@@ -202,7 +202,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, MissingUsedInSimulationThrows) {
 }
 
 // Missing 'candidates' throws
-TEST_F(YamlImmuneSystemParameterOverridesTest, MissingCandidatesThrows) {
+TEST_F(ImmuneSystemParameterOverridesTest, MissingCandidatesThrows) {
   YAML::Node node;
   node["used_in_simulation"] = 0;
   ImmuneSystemParameterOverrides result;
@@ -211,7 +211,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, MissingCandidatesThrows) {
 }
 
 // A candidate with only some keys is decoded successfully (all keys are optional in the map)
-TEST_F(YamlImmuneSystemParameterOverridesTest, CandidateWithPartialKeysDecodesOk) {
+TEST_F(ImmuneSystemParameterOverridesTest, CandidateWithPartialKeysDecodesOk) {
   // Build the whole node from a single YAML document so that `candidates` is a
   // MAP with integer key 0.  Assigning cmap[0] with 0 as the only/first index
   // makes yaml-cpp create a SEQUENCE instead of a map, which then fails to
@@ -233,7 +233,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, CandidateWithPartialKeysDecodesOk
 
 // Non-sequential keys are decoded correctly and the key-collection logic used by
 // Config::load random_selection picks only valid keys.
-TEST_F(YamlImmuneSystemParameterOverridesTest, RandomSelectionNonSequentialKeys) {
+TEST_F(ImmuneSystemParameterOverridesTest, RandomSelectionNonSequentialKeys) {
   YAML::Node node;
   node["used_in_simulation"] = 2;
   node["random_selection"]   = true;
@@ -278,7 +278,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, RandomSelectionNonSequentialKeys)
 }
 
 // Genotype override keys: both absent in YAML means neither key is present in map
-TEST_F(YamlImmuneSystemParameterOverridesTest, GenotypeKeysAbsentWhenNotInYaml) {
+TEST_F(ImmuneSystemParameterOverridesTest, GenotypeKeysAbsentWhenNotInYaml) {
   auto node = make_candidates_node(0);
   ImmuneSystemParameterOverrides result;
   YAML::convert<ImmuneSystemParameterOverrides>::decode(node, result);
@@ -292,7 +292,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, GenotypeKeysAbsentWhenNotInYaml) 
 }
 
 // mutation_probability_per_locus: explicit -1 in YAML is present in map with value -1
-TEST_F(YamlImmuneSystemParameterOverridesTest, MutationProbExplicitMinusOneIsPreserved) {
+TEST_F(ImmuneSystemParameterOverridesTest, MutationProbExplicitMinusOneIsPreserved) {
   auto node = make_candidates_node(0, false, /*include_mutation_prob=*/true, /*mutation_prob=*/-1.0);
   ImmuneSystemParameterOverrides result;
   YAML::convert<ImmuneSystemParameterOverrides>::decode(node, result);
@@ -306,7 +306,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, MutationProbExplicitMinusOneIsPre
 }
 
 // mutation_probability_per_locus: positive value is parsed and round-trips
-TEST_F(YamlImmuneSystemParameterOverridesTest, MutationProbPositiveValueRoundtrip) {
+TEST_F(ImmuneSystemParameterOverridesTest, MutationProbPositiveValueRoundtrip) {
   const double inputMutProb = 0.005;
   auto node = make_candidates_node(0, false, /*include_mutation_prob=*/true, inputMutProb);
 
@@ -330,7 +330,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, MutationProbPositiveValueRoundtri
 }
 
 // default_cnv_reversion_multiplier: zero value (as in most candidates in input.yml) is parsed and round-trips
-TEST_F(YamlImmuneSystemParameterOverridesTest, CnvReversionMultiplierZeroRoundtrip) {
+TEST_F(ImmuneSystemParameterOverridesTest, CnvReversionMultiplierZeroRoundtrip) {
   const double inputCnvMult = 0.0;
   auto node = make_candidates_node(0, false,
                                    /*include_mutation_prob=*/false, -1.0,
@@ -356,7 +356,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, CnvReversionMultiplierZeroRoundtr
 }
 
 // default_cnv_reversion_multiplier: non-zero value (as in candidate 0 of input.yml) is parsed correctly
-TEST_F(YamlImmuneSystemParameterOverridesTest, CnvReversionMultiplierNonZeroValue) {
+TEST_F(ImmuneSystemParameterOverridesTest, CnvReversionMultiplierNonZeroValue) {
   auto node = make_candidates_node(0, false,
                                    /*include_mutation_prob=*/true,  /*mutation_prob=*/0.00085,
                                    /*include_cnv_mult=*/true,       /*cnv_mult=*/0.1);
@@ -372,7 +372,7 @@ TEST_F(YamlImmuneSystemParameterOverridesTest, CnvReversionMultiplierNonZeroValu
 }
 
 // log_all does not crash (smoke test)
-TEST_F(YamlImmuneSystemParameterOverridesTest, LogAllDoesNotCrash) {
+TEST_F(ImmuneSystemParameterOverridesTest, LogAllDoesNotCrash) {
   auto node = make_candidates_node(0, false,
                                    /*include_mutation_prob=*/true,  /*mutation_prob=*/0.00085,
                                    /*include_cnv_mult=*/true,       /*cnv_mult=*/0.0);
