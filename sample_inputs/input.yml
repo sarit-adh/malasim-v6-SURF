@@ -361,7 +361,7 @@ genotype_parameters:
 
   # Daily probability that a parasite will mutate at a given locus when drug concentration is not zero
   mutation_probability_per_locus: 0.001
-  default_cnv_weversion_multiplier: 0.0
+  default_cnv_reversion_multiplier: 0.0
 
   pf_genotype_info:
     - chromosome: 5
@@ -623,7 +623,7 @@ genotype_parameters:
       ec50: 0.85
     - pattern: "||||NFD.||K......,.||||||.............|."
       drug_id: 2
-      ec50: 0.5       
+      ec50: 0.5
     - pattern: "||||YFD.||K......,.||||||.............|."
       drug_id: 2
       ec50: 0.775
