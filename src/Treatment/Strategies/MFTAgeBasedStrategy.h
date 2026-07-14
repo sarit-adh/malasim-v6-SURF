@@ -22,16 +22,15 @@ public:
 
   [[nodiscard]] std::string to_string() const override;
 
-  void update_end_of_time_step() override{};
+  void update_end_of_time_step() override {};
 
-  void adjust_started_time_point(const int &currentTime) override{};
+  void adjust_started_time_point(const int &current_time) override {};
 
-  void monthly_update() override{};
+  void monthly_update() override {};
 
   [[nodiscard]] size_t find_age_range_index(double age) const;
 
-  static size_t find_age_range_index(const std::vector<double> &ageBoundaries,
-                                     double age);
+  static size_t find_age_range_index(const std::vector<double> &age_boundaries, double age);
 };
 
 #endif  // STRATEGIES_MFTAGEBASED_H

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Configuration/Config.h"
+#include "Core/types.h"
 
 class ITreatmentCoverageModel {
 public:
@@ -24,7 +25,7 @@ public:
   std::vector<double> p_treatment_under_5;
   std::vector<double> p_treatment_over_5;
 
-  virtual double get_probability_to_be_treated(const int &location, const int &age);
+  virtual double get_probability_to_be_treated(core::LocationId location, core::Age age);
 
   virtual void monthly_update() = 0;
 

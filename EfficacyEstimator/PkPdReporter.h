@@ -19,12 +19,15 @@ class Cli;
 
 class PkPdReporter : public Reporter {
 public:
-  std::string prefix;
-  std::ofstream parasitaemia_file;
+  explicit PkPdReporter(utils::Cli::DxGAppInput* app_input = nullptr);
 
-  PkPdReporter(utils::Cli::DxGAppInput* appInput = nullptr);
-
-  virtual ~PkPdReporter();
+  PkPdReporter(const PkPdReporter &) = delete;
+  PkPdReporter(PkPdReporter &&) = delete;
+  PkPdReporter &operator=(const PkPdReporter &) = delete;
+  PkPdReporter &operator=(PkPdReporter &&) = delete;
+  PkPdReporter(std::string prefix, std::ofstream parasitaemia_file)
+      : prefix_(std::move(prefix)), parasitaemia_file_(std::move(parasitaemia_file)) {}
+  ~PkPdReporter() override;
 
   void initialize(int job_number, const std::string &path) override;
 
@@ -39,7 +42,9 @@ public:
   void monthly_report() override;
 
 private:
-  utils::Cli::DxGAppInput* appInput{nullptr};
+  utils::Cli::DxGAppInput* app_input_{nullptr};
+  std::string prefix_;
+  std::ofstream parasitaemia_file_;
 };
 
 #endif /* PKPDREPORTER_H */

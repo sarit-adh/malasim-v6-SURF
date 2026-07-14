@@ -21,7 +21,7 @@ StrategyBuilder::StrategyBuilder() = default;
 StrategyBuilder::~StrategyBuilder() = default;
 
 std::unique_ptr<IStrategy> StrategyBuilder::build(const YAML::Node &ns, const int &strategy_id) {
-  const auto type = IStrategy::StrategyTypeMap[ns["type"].as<std::string>()];
+  const auto type = IStrategy::strategy_type_map[ns["type"].as<std::string>()];
   switch (type) {
     case IStrategy::SFT:
       return build_sft_strategy(ns, strategy_id);
@@ -109,7 +109,7 @@ std::unique_ptr<IStrategy> StrategyBuilder::build_mft_strategy(const YAML::Node 
   } else if (ns["distribution"]) {
     add_distributions(ns["distribution"], result->distribution);
   }
-  
+
   add_therapies(ns, result.get());
   return result;
 }

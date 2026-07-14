@@ -70,6 +70,7 @@ private:
   std::vector<std::unique_ptr<Therapy>> therapy_db_;
 
   IStrategy* treatment_strategy_{nullptr};
+  IStrategy* second_line_strategy_{nullptr};
 
 public:
   void before_run();
@@ -173,6 +174,8 @@ public:
 
   static IStrategy* get_treatment_strategy();
   void set_treatment_strategy(const int &strategy_id);
+  static IStrategy* get_second_line_strategy();
+  void set_second_line_strategy(int strategy_id);
 
   void build_initial_treatment_coverage();
   void monthly_report();

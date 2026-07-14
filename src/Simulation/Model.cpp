@@ -81,6 +81,10 @@ bool Model::initialize() {
     set_treatment_strategy(config_->get_strategy_parameters().get_initial_strategy_id());
     spdlog::info("Model initialized treatment strategy.");
 
+    set_second_line_strategy(
+        config_->get_strategy_parameters().get_second_line_strategy_id());
+    spdlog::info("Model initialized second-line treatment strategy.");
+
     build_initial_treatment_coverage();
     spdlog::info("Model initialized treatment coverage model.");
 
@@ -130,6 +134,7 @@ void Model::release() {
   // Clean up the memory used by the model
 
   treatment_strategy_ = nullptr;
+  second_line_strategy_ = nullptr;
   treatment_coverage_.reset();
 
   progress_to_clinical_update_function_.reset();
@@ -184,6 +189,9 @@ void Model::end_time_step() {
 
   // check to switch strategy
   treatment_strategy_->update_end_of_time_step();
+  if (second_line_strategy_ != nullptr && second_line_strategy_ != treatment_strategy_) {
+    second_line_strategy_->update_end_of_time_step();
+  }
 
   report_after_time_step();
 }
@@ -224,6 +232,9 @@ void Model::monthly_update() {
 
   //
   treatment_strategy_->monthly_update();
+  if (second_line_strategy_ != nullptr && second_line_strategy_ != treatment_strategy_) {
+    second_line_strategy_->monthly_update();
+  }
 
   // update treatment coverage
   treatment_coverage_->monthly_update();
@@ -256,6 +267,18 @@ void Model::set_treatment_strategy(const int &strategy_id) {
   treatment_strategy_ = strategy_id == -1 ? nullptr : Model::get_strategy_db()[strategy_id].get();
   assert(treatment_strategy_ != nullptr);
   treatment_strategy_->adjust_started_time_point(Model::get_scheduler()->current_time());
+}
+
+IStrategy* Model::get_second_line_strategy() {
+  return get_instance()->second_line_strategy_;
+}
+
+void Model::set_second_line_strategy(const int strategy_id) {
+  second_line_strategy_ =
+      strategy_id == -1 ? nullptr : Model::get_strategy_db()[strategy_id].get();
+  if (second_line_strategy_ != nullptr && second_line_strategy_ != treatment_strategy_) {
+    second_line_strategy_->adjust_started_time_point(Model::get_scheduler()->current_time());
+  }
 }
 
 ITreatmentCoverageModel* Model::get_treatment_coverage() {

@@ -17,7 +17,7 @@
 #include "Treatment/Therapies/Therapy.h"
 #include "Utils/Helpers/StringHelpers.h"
 
-CyclingStrategy::CyclingStrategy() : IStrategy("CyclingStrategy", Cycling) {}
+CyclingStrategy::CyclingStrategy() : IStrategy("CyclingStrategy", StrategyType::Cycling) {}
 
 CyclingStrategy::~CyclingStrategy() = default;
 

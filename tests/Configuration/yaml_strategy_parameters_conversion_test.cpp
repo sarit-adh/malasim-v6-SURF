@@ -42,6 +42,7 @@ protected:
 
         strategy_parameters.set_strategy_db_raw(strategy_db);
         strategy_parameters.set_initial_strategy_id(15);
+        strategy_parameters.set_second_line_strategy_id(2);
         strategy_parameters.set_mass_drug_administration(mda_info);
     }
 };
@@ -51,6 +52,7 @@ TEST_F(StrategyParametersTest, EncodeStrategyParameters) {
     YAML::Node node = YAML::convert<StrategyParameters>::encode(strategy_parameters);
 
     EXPECT_EQ(node["initial_strategy_id"].as<int>(), 15);
+    EXPECT_EQ(node["second_line_strategy_id"].as<int>(), 2);
     EXPECT_EQ(node["strategy_db"][0]["name"].as<std::string>(), "SP-AQ-CQ-AL-MFTStrategy");
     EXPECT_EQ(node["strategy_db"][0]["therapy_ids"].as<std::vector<int>>(), std::vector<int>({5, 2, 12, 6}));
 
@@ -69,6 +71,7 @@ TEST_F(StrategyParametersTest, EncodeStrategyParameters) {
 TEST_F(StrategyParametersTest, DecodeStrategyParameters) {
     YAML::Node node;
     node["initial_strategy_id"] = 15;
+    node["second_line_strategy_id"] = 2;
 
     node["strategy_db"]["0"]["name"] = "SP-AQ-CQ-AL-MFTStrategy";
     node["strategy_db"]["0"]["type"] = "MFT";
@@ -89,6 +92,7 @@ TEST_F(StrategyParametersTest, DecodeStrategyParameters) {
     EXPECT_NO_THROW(YAML::convert<StrategyParameters>::decode(node, decoded_parameters));
 
     EXPECT_EQ(decoded_parameters.get_initial_strategy_id(), 15);
+    EXPECT_EQ(decoded_parameters.get_second_line_strategy_id(), 2);
     EXPECT_EQ(decoded_parameters.get_strategy_db_raw().at(0).get_name(), "SP-AQ-CQ-AL-MFTStrategy");
     EXPECT_EQ(decoded_parameters.get_strategy_db_raw().at(0).get_therapy_ids(), std::vector<int>({5, 2, 12, 6}));
 
@@ -101,6 +105,27 @@ TEST_F(StrategyParametersTest, DecodeStrategyParameters) {
     EXPECT_EQ(decoded_parameters.get_mda().get_enable(), false);
     EXPECT_EQ(decoded_parameters.get_mda().get_age_bracket_prob_individual_present_at_mda(), std::vector<int>({10, 40}));
     EXPECT_EQ(decoded_parameters.get_mda().get_mean_prob_individual_present_at_mda(), std::vector<double>({0.85, 0.75, 0.85}));
+}
+
+TEST_F(StrategyParametersTest, DecodeStrategyParametersDefaultsSecondLineStrategyToDisabled) {
+    YAML::Node node;
+    node["initial_strategy_id"] = 15;
+    node["strategy_db"]["0"]["name"] = "SP-AQ-CQ-AL-MFTStrategy";
+    node["strategy_db"]["0"]["type"] = "MFT";
+    node["strategy_db"]["0"]["therapy_ids"] = std::vector<int>{5, 2, 12, 6};
+    node["strategy_db"]["0"]["distribution"] = std::vector<double>{0.3, 0.3, 0.3, 0.1};
+    node["mass_drug_administration"]["enable"] = false;
+    node["mass_drug_administration"]["mda_therapy_id"] = 8;
+    node["mass_drug_administration"]["age_bracket_prob_individual_present_at_mda"] =
+        std::vector<int>{10, 40};
+    node["mass_drug_administration"]["mean_prob_individual_present_at_mda"] =
+        std::vector<double>{0.85, 0.75, 0.85};
+    node["mass_drug_administration"]["sd_prob_individual_present_at_mda"] =
+        std::vector<double>{0.3, 0.3, 0.3};
+
+    StrategyParameters decoded_parameters;
+    ASSERT_TRUE(YAML::convert<StrategyParameters>::decode(node, decoded_parameters));
+    EXPECT_EQ(decoded_parameters.get_second_line_strategy_id(), -1);
 }
 
 // Test for decoding with missing fields

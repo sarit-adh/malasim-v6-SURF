@@ -4,32 +4,31 @@
 #include "IStrategy.h"
 
 class NestedMFTStrategy : public IStrategy {
-  //disallow copy and assign and move
+public:
+  // disallow copy and assign and move
   NestedMFTStrategy(const NestedMFTStrategy &) = delete;
   void operator=(const NestedMFTStrategy &) = delete;
   NestedMFTStrategy(NestedMFTStrategy &&) = delete;
   NestedMFTStrategy &operator=(NestedMFTStrategy &&) = delete;
 
- public:
-  std::vector<IStrategy *> strategy_list;
+  std::vector<IStrategy*> strategy_list;
   std::vector<double> distribution;
   std::vector<double> start_distribution;
   std::vector<double> peak_distribution;
   int starting_time{0};
   int peak_after{0};
 
-  NestedMFTStrategy()
-      : IStrategy("NestedMFTStrategy", NestedMFT) {}
+  NestedMFTStrategy() : IStrategy("NestedMFTStrategy", StrategyType::NestedMFT) {}
 
-  virtual ~NestedMFTStrategy() = default;
+  ~NestedMFTStrategy() override = default;
 
-  virtual void add_strategy(IStrategy *strategy);
+  virtual void add_strategy(IStrategy* strategy);
 
-  void add_therapy(Therapy *therapy) override;
+  void add_therapy(Therapy* therapy) override;
 
-  Therapy *get_therapy(Person *person) override;
+  Therapy* get_therapy(Person* person) override;
 
-  std::string to_string() const override;
+  [[nodiscard]] std::string to_string() const override;
 
   void adjust_started_time_point(const int &current_time) override;
 
@@ -40,4 +39,4 @@ class NestedMFTStrategy : public IStrategy {
   void adjust_distribution(const int &time);
 };
 
-#endif // NESTEDMFTSTRATEGY_H
+#endif  // NESTEDMFTSTRATEGY_H

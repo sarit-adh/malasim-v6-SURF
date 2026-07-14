@@ -87,49 +87,49 @@ bool Config::load(const std::string &filename) {
       immune_system_parameter_candidates_.log_all();
 
       if (immune_system_parameter_candidates_.has_selected_candidate()) {
-        const auto &c = immune_system_parameter_candidates_.get_selected_candidate();
+        const auto &cdd = immune_system_parameter_candidates_.get_selected_candidate();
         const int idx = immune_system_parameter_candidates_.get_used_in_simulation();
 
         spdlog::info("Applying candidate[{}] overrides:", idx);
         spdlog::info("  p_ci_symp={}  -> allow_new_coinfection_to_cause_symptoms.probability",
-                     c.p_ci_symp);
+                     cdd.p_ci_symp);
         spdlog::info(
             "  z={}          -> immune_system_parameters.immune_effect_on_progression_to_clinical",
-            c.z);
+            cdd.z);
         spdlog::info(
             "  kappa={}      -> immune_system_parameters.factor_effect_age_mature_immunity",
-            c.kappa);
-        spdlog::info("  midpoint={}   -> immune_system_parameters.midpoint", c.midpoint);
+            cdd.kappa);
+        spdlog::info("  midpoint={}   -> immune_system_parameters.midpoint", cdd.midpoint);
         spdlog::info(
             "  p_seek_base={} -> "
             "epidemiological_parameters.age_based_probability_of_seeking_treatment.power.base",
-            c.p_seek_base);
-        spdlog::info(
-            "  mutation_probability_per_locus={} -> genotype_parameters (skipped if -1)",
-            c.mutation_probability_per_locus);
+            cdd.p_seek_base);
+        spdlog::info("  mutation_probability_per_locus={} -> genotype_parameters (skipped if -1)",
+                     cdd.mutation_probability_per_locus);
 
         // Override immune_system_parameters (z, kappa, midpoint)
-        immune_system_parameters_.set_immune_effect_on_progression_to_clinical(c.z);
-        immune_system_parameters_.set_factor_effect_age_mature_immunity(c.kappa);
-        immune_system_parameters_.set_midpoint(c.midpoint);
+        immune_system_parameters_.set_immune_effect_on_progression_to_clinical(cdd.z);
+        immune_system_parameters_.set_factor_effect_age_mature_immunity(cdd.kappa);
+        immune_system_parameters_.set_midpoint(cdd.midpoint);
 
         // Override allow_new_coinfection_to_cause_symptoms.probability (p_ci_symp)
         auto coinfection =
             epidemiological_parameters_.get_allow_new_coinfection_to_cause_symptoms();
-        coinfection.set_probability(c.p_ci_symp);
+        coinfection.set_probability(cdd.p_ci_symp);
         epidemiological_parameters_.set_allow_new_coinfection_to_cause_symptoms(coinfection);
 
         // Override age_based_probability_of_seeking_treatment.power.base (p_seek_base)
         auto age_based =
             epidemiological_parameters_.get_age_based_probability_of_seeking_treatment();
         auto power = age_based.get_power();
-        power.base = c.p_seek_base;
+        power.base = cdd.p_seek_base;
         age_based.set_power(power);
         epidemiological_parameters_.set_age_based_probability_of_seeking_treatment(age_based);
 
         // Override mutation_probability_per_locus if candidate specifies one (not -1)
-        if (c.mutation_probability_per_locus >= 0.0) {
-          genotype_parameters_.set_mutation_probability_per_locus(c.mutation_probability_per_locus);
+        if (cdd.mutation_probability_per_locus >= 0.0) {
+          genotype_parameters_.set_mutation_probability_per_locus(
+              cdd.mutation_probability_per_locus);
           spdlog::info("  mutation_probability_per_locus overridden to {}",
                        genotype_parameters_.get_mutation_probability_per_locus());
         } else {
@@ -636,6 +636,11 @@ void Config::validate_all_cross_field_validations() {
   if (!strategy_parameters.get_strategy_db_raw().contains(
           strategy_parameters.get_initial_strategy_id())) {
     throw std::invalid_argument("Initial strategy id should be in strategy db keys");
+  }
+  const int second_line_strategy_id = strategy_parameters.get_second_line_strategy_id();
+  if (second_line_strategy_id != -1
+      && !strategy_parameters.get_strategy_db_raw().contains(second_line_strategy_id)) {
+    throw std::invalid_argument("Second line strategy id should be -1 or in strategy db keys");
   }
 
   /*----------------------------

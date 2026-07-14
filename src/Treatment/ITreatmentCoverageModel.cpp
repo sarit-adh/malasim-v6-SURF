@@ -3,12 +3,14 @@
 #include <yaml-cpp/yaml.h>
 
 #include "Configuration/Config.h"
+#include "Core/types.h"
 #include "InflatedTCM.h"
 #include "LinearTCM.h"
 #include "SteadyTCM.h"
 #include "spdlog/spdlog.h"
 
-double ITreatmentCoverageModel::get_probability_to_be_treated(const int &location, const int &age) {
+double ITreatmentCoverageModel::get_probability_to_be_treated(core::LocationId location,
+                                                              core::Age age) {
   if (location < 0 || location >= p_treatment_under_5.size()
       || location >= p_treatment_over_5.size()) {
     spdlog::error("wrong location value: {}", location);
@@ -69,9 +71,7 @@ std::unique_ptr<ITreatmentCoverageModel> ITreatmentCoverageModel::build_inflated
 std::unique_ptr<ITreatmentCoverageModel> ITreatmentCoverageModel::build_linear_tcm(
     const YAML::Node &node, Config* config) {
   auto result = std::make_unique<LinearTCM>();
-  if (!result) {
-    throw std::runtime_error("LinearTCM is nullptr");
-  }
+  if (!result) { throw std::runtime_error("LinearTCM is nullptr"); }
 
   const auto starting_date = node["from_date"].as<date::year_month_day>();
   const auto to_date = node["to_date"].as<date::year_month_day>();
@@ -93,25 +93,17 @@ std::unique_ptr<ITreatmentCoverageModel> ITreatmentCoverageModel::build_linear_t
                    config->number_of_locations());
   result->type = node["type"].as<std::string>();
 
-  if (!result) {
-    throw std::runtime_error("LinearTCM is nullptr");
-  }
+  if (!result) { throw std::runtime_error("LinearTCM is nullptr"); }
 
   spdlog::info("Treatment coverage model: {}", result->type);
   spdlog::info("Start time: {}", result->starting_time);
   spdlog::info("End time: {}", result->end_time);
-  spdlog::info("p_treatment_under_5_by_location_from: {}",
-           result->p_treatment_under_5.front());
-  spdlog::info("p_treatment_under_5_by_location_to: {}",
-           result->p_treatment_under_5_to.front());
-  spdlog::info("p_treatment_over_5_by_location_from: {}",
-           result->p_treatment_over_5.front());
-  spdlog::info("p_treatment_over_5_by_location_to: {}",
-           result->p_treatment_over_5_to.front());
+  spdlog::info("p_treatment_under_5_by_location_from: {}", result->p_treatment_under_5.front());
+  spdlog::info("p_treatment_under_5_by_location_to: {}", result->p_treatment_under_5_to.front());
+  spdlog::info("p_treatment_over_5_by_location_from: {}", result->p_treatment_over_5.front());
+  spdlog::info("p_treatment_over_5_by_location_to: {}", result->p_treatment_over_5_to.front());
 
-  if (!result) {
-    throw std::runtime_error("LinearTCM is nullptr");
-  }
+  if (!result) { throw std::runtime_error("LinearTCM is nullptr"); }
 
   return result;
 }

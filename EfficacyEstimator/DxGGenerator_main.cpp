@@ -194,6 +194,7 @@ int main(int argc, char** argv) {
 
       Model::get_genotype_db()->clear();
       std::vector<Genotype*> genotype_inputs;
+      genotype_inputs.reserve(input.genotypes.size());
       for (const auto &genotype_str : input.genotypes) {
         genotype_inputs.push_back(Model::get_genotype_db()->get_genotype(genotype_str));
       }

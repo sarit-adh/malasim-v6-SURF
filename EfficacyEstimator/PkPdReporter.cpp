@@ -1,39 +1,35 @@
-/* 
+/*
  * File:   PkPdReporter.cpp
  * Author: Merlin
- * 
+ *
  * Created on October 29, 2014, 12:56 PM
  */
 
 #include "PkPdReporter.h"
+
 #include "Population/ImmuneSystem/ImmuneSystem.h"
-#include "Simulation/Model.h"
 #include "Population/Person/Person.h"
+#include "Simulation/Model.h"
 #include "Utils/Index/PersonIndexAll.h"
 
-PkPdReporter::PkPdReporter(utils::Cli::DxGAppInput* appInput)
-    : appInput{appInput} {}
+PkPdReporter::PkPdReporter(utils::Cli::DxGAppInput* app_input) : app_input_{app_input} {}
 
 PkPdReporter::~PkPdReporter() {
-  if (parasitaemia_file.is_open()) {
-    parasitaemia_file.close();
-  }
+  if (parasitaemia_file_.is_open()) { parasitaemia_file_.close(); }
 }
 
-void PkPdReporter::initialize(int /*job_number*/, const std::string& path) {
-  prefix = path;
-}
+void PkPdReporter::initialize(int /*job_number*/, const std::string &path) { prefix_ = path; }
 
 void PkPdReporter::before_run() {
   // Open CSV output — use appInput->output_file if provided, else fall back to prefix
   std::string out_path;
-  if (appInput && !appInput->output_file.empty()) {
-    out_path = appInput->output_file;
+  if ((app_input_ != nullptr) && !app_input_->output_file.empty()) {
+    out_path = app_input_->output_file;
   } else {
-    out_path = fmt::format("{}_parasitaemia.csv", prefix);
+    out_path = fmt::format("{}_parasitaemia.csv", prefix_);
   }
-  parasitaemia_file.open(out_path, std::ios::out);
-  parasitaemia_file << "time,individual,recrudescence,parasitaemia" << std::endl;
+  parasitaemia_file_.open(out_path, std::ios::out);
+  parasitaemia_file_ << "time,individual,recrudescence,parasitaemia" << '\n';
 }
 
 void PkPdReporter::begin_time_step() {
@@ -43,14 +39,14 @@ void PkPdReporter::begin_time_step() {
   Model::get_mdc()->blood_slide_prevalence_by_location()[0] = 0.1;
 
   if ((Model::get_scheduler()->current_time()
-          % Model::get_config()->get_model_settings().get_days_between_stdout_output() == 0)
-          &&(Model::get_scheduler()->current_time() >= Model::get_config()->get_simulation_timeframe().get_start_collect_data_day())) {
+           % Model::get_config()->get_model_settings().get_days_between_stdout_output()
+       == 0)
+      && (Model::get_scheduler()->current_time()
+          >= Model::get_config()->get_simulation_timeframe().get_start_collect_data_day())) {
     auto current_time = Model::get_scheduler()->current_time();
 
-    for (int i = 0;
-         i < Model::get_population()->all_persons()->v_person().size(); i++) {
-      auto* person =
-          Model::get_population()->all_persons()->v_person()[i].get();
+    for (int i = 0; i < Model::get_population()->all_persons()->v_person().size(); i++) {
+      auto* person = Model::get_population()->all_persons()->v_person()[i].get();
 
       auto recrudescence_state = person->get_recurrence_status();
 
@@ -66,9 +62,8 @@ void PkPdReporter::begin_time_step() {
                            .get_log_parasite_density_cured();
       }
 
-      parasitaemia_file << current_time << "," << i << ","
-                        << static_cast<int>(recrudescence_state) << "," << parasitaemia
-                        << std::endl;
+      parasitaemia_file_ << current_time << "," << i << "," << static_cast<int>(recrudescence_state)
+                         << "," << parasitaemia << '\n';
     }
   }
 }
@@ -79,5 +74,5 @@ void PkPdReporter::monthly_report() {}
 
 void PkPdReporter::after_run() {
   Model::get_mdc()->update_after_run();
-  parasitaemia_file.close();
+  parasitaemia_file_.close();
 }

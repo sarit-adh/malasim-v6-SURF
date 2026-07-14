@@ -18,7 +18,7 @@
 #include "Utils/Helpers/StringHelpers.h"
 
 AdaptiveCyclingStrategy::AdaptiveCyclingStrategy()
-    : IStrategy("AdaptiveCyclingStrategy", AdaptiveCycling) {}
+    : IStrategy("AdaptiveCyclingStrategy", StrategyType::AdaptiveCycling) {}
 
 AdaptiveCyclingStrategy::~AdaptiveCyclingStrategy() = default;
 

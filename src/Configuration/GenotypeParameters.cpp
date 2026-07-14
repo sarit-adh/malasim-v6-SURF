@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "Population/ImmuneSystem/ImmuneSystemConstants.h"
 #include "Simulation/Model.h"
 
 void GenotypeParameters::process_config_with_number_of_locations(size_t number_of_locations) {
@@ -29,10 +30,8 @@ void GenotypeParameters::process_config_with_number_of_locations(size_t number_o
   }
 }
 
-
 void GenotypeParameters::validate_cnv_reversion_multipliers(const GenotypeParameters &params) {
-  constexpr double kMaxCnvReversionMultiplier = 10.0;
-  if (params.get_default_cnv_reversion_multiplier() > kMaxCnvReversionMultiplier) {
+  if (params.get_default_cnv_reversion_multiplier() > immune::K_MAX_CNV_REVERSION_MULTIPLIER) {
     throw std::invalid_argument("Default CNV reversion multiplier should be in range [0,10]");
   }
   for (const auto &chromosome_info : params.get_pf_genotype_info().chromosome_infos) {
@@ -42,7 +41,7 @@ void GenotypeParameters::validate_cnv_reversion_multipliers(const GenotypeParame
         throw std::invalid_argument(
             "CNV reversion multiplier can only be set for genes with max_copies > 1");
       }
-      if (gene_info.get_cnv_reversion_multiplier() > kMaxCnvReversionMultiplier) {
+      if (gene_info.get_cnv_reversion_multiplier() > immune::K_MAX_CNV_REVERSION_MULTIPLIER) {
         throw std::invalid_argument("CNV reversion multiplier should be in range [0,10]");
       }
     }

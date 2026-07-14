@@ -1,13 +1,13 @@
 #include "IStrategy.h"
 
-std::map<std::string, IStrategy::StrategyType> IStrategy::StrategyTypeMap{
-    {"SFT",                    SFT},
-    {"Cycling",                Cycling},
-    {"AdaptiveCycling",        AdaptiveCycling},
-    {"MFT",                    MFT},
-    {"MFTRebalancing",         MFTRebalancing},
-    {"NestedMFT",              NestedMFT},
-    {"MFTMultiLocation",       MFTMultiLocation},
-    {"NestedMFTMultiLocation", NestedMFTMultiLocation},
-    {"NovelDrugIntroduction",     NovelDrugIntroduction},
+std::map<std::string, IStrategy::StrategyType> IStrategy::strategy_type_map{
+    {"SFT", StrategyType::SFT},
+    {"Cycling", StrategyType::Cycling},
+    {"AdaptiveCycling", StrategyType::AdaptiveCycling},
+    {"MFT", StrategyType::MFT},
+    {"MFTRebalancing", StrategyType::MFTRebalancing},
+    {"NestedMFT", StrategyType::NestedMFT},
+    {"MFTMultiLocation", StrategyType::MFTMultiLocation},
+    {"NestedMFTMultiLocation", StrategyType::NestedMFTMultiLocation},
+    {"NovelDrugIntroduction", StrategyType::NovelDrugIntroduction},
 };

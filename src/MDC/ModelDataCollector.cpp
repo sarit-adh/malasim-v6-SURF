@@ -430,7 +430,7 @@ void ModelDataCollector::perform_population_statistic() {
   }
 }
 
-void ModelDataCollector::collect_1_clinical_episode(const int &location, const int &age,
+void ModelDataCollector::collect_1_clinical_episode(core::LocationId location, const int &age,
                                                     const int &age_class) {
   if (recording_) {
     monthly_number_of_clinical_episode_by_location_[location] += 1;
@@ -455,7 +455,7 @@ void ModelDataCollector::collect_1_clinical_episode(const int &location, const i
   }
 }
 
-void ModelDataCollector::record_1_death(const int &location, const int &birthday,
+void ModelDataCollector::record_1_death(core::LocationId location, const int &birthday,
                                         const int &number_of_times_bitten, const int &age_group,
                                         const int &age) {
   if (Model::get_scheduler()->current_time()
@@ -471,7 +471,7 @@ void ModelDataCollector::record_1_death(const int &location, const int &birthday
   }
 }
 
-void ModelDataCollector::record_1_malaria_death(const int &loc, const int &age, bool treated) {
+void ModelDataCollector::record_1_malaria_death(core::LocationId loc, core::Age age, bool treated) {
   if (!recording_) return;
   const int age_clamp = (age < 80) ? age : 79;
   if (treated)
@@ -480,7 +480,8 @@ void ModelDataCollector::record_1_malaria_death(const int &loc, const int &age, 
     number_of_malaria_deaths_non_treated_by_location_age_year_[loc][age_clamp] += 1;
 }
 
-void ModelDataCollector::update_average_number_bitten(const int &location, const int &birthday,
+void ModelDataCollector::update_average_number_bitten(core::LocationId location,
+                                                      const int &birthday,
                                                       const int &number_of_times_bitten) {
   const auto time_living_from_start_collect_data_day =
       (birthday < Model::get_config()->get_simulation_timeframe().get_start_collect_data_day())
@@ -524,8 +525,8 @@ void ModelDataCollector::calculate_percentage_bites_on_top_20() {
   }
 }
 
-void ModelDataCollector::record_1_non_treated_case(const int &location, const int &age,
-                                                   const int &age_class) {
+void ModelDataCollector::record_1_non_treated_case(core::LocationId location, core::Age age,
+                                                   core::AgeClass age_class) {
   if (recording_) {
     if (age <= 79) {
       number_of_untreated_cases_by_location_age_year_[location][age] += 1;
@@ -628,8 +629,8 @@ void ModelDataCollector::end_of_time_step() {
   }
 }
 
-void ModelDataCollector::record_1_treatment(const int &location, const int &age,
-                                            const int &age_class, const int &therapy_id) {
+void ModelDataCollector::record_1_treatment(core::LocationId location, core::Age age,
+                                            core::AgeClass age_class, core::TherapyId therapy_id) {
   if (!recording_) { return; }
   today_number_of_treatments_by_location_[location] += 1;
   today_number_of_treatments_by_therapy_[therapy_id] += 1;
@@ -679,9 +680,9 @@ void ModelDataCollector::record_1_treatment(const int &location, const int &age,
   }
 }
 
-void ModelDataCollector::record_1_recrudescence_treatment(const int &location, const int &age,
-                                                          const int &age_class,
-                                                          const int &therapy_id) {
+void ModelDataCollector::record_1_recrudescence_treatment(core::LocationId location, core::Age age,
+                                                          core::AgeClass age_class,
+                                                          core::TherapyId therapy_id) {
   if (!recording_) { return; }
   monthly_number_of_recrudescence_treatment_by_location_[location] += 1;
   monthly_number_of_recrudescence_treatment_by_location_age_class_[location][age_class] += 1;
@@ -698,7 +699,7 @@ void ModelDataCollector::record_1_mutation(const core::LocationId &location, Gen
   current_number_of_mutation_events_ += 1;
 }
 
-void ModelDataCollector::record_1_mutation_by_drug(const core::LocationId &location, Genotype* from,
+void ModelDataCollector::record_1_mutation_by_drug(core::LocationId location, Genotype* from,
                                                    Genotype* to, int drug_id) {
   auto mutation_tracker_info = std::make_tuple(location, Model::get_scheduler()->current_time(),
                                                Model::get_scheduler()->get_current_month_in_year(),
@@ -706,7 +707,7 @@ void ModelDataCollector::record_1_mutation_by_drug(const core::LocationId &locat
   mutation_tracker[location].emplace_back(mutation_tracker_info);
 }
 
-void ModelDataCollector::record_1_treatment_failure_by_therapy(const int &location,
+void ModelDataCollector::record_1_treatment_failure_by_therapy(core::LocationId location,
                                                                const int &age_class,
                                                                const int &therapy_id) {
   number_of_treatments_fail_with_therapy_id_[therapy_id] += 1;
@@ -718,7 +719,7 @@ void ModelDataCollector::record_1_treatment_failure_by_therapy(const int &locati
   monthly_treatment_failure_by_location_therapy_[location][therapy_id]++;
 }
 
-void ModelDataCollector::record_1_treatment_success_by_therapy(const int &location,
+void ModelDataCollector::record_1_treatment_success_by_therapy(core::LocationId location,
                                                                const int &age_class,
                                                                const int &therapy_id) {
   number_of_treatments_success_with_therapy_id_[therapy_id] += 1;
@@ -734,7 +735,7 @@ void ModelDataCollector::update_utl_vector() {
   current_utl_duration_ = 0;
 }
 
-void ModelDataCollector::record_1_tf(const int &location, const bool &by_drug) {
+void ModelDataCollector::record_1_tf(core::LocationId location, bool by_drug) {
   // if treatment failure due to drug (both resistance or not clear)
   if (by_drug && recording_) {
     today_tf_by_location_[location] += 1;
@@ -759,7 +760,8 @@ void ModelDataCollector::record_1_tf(const int &location, const bool &by_drug) {
  * From MainDataCollector
  */
 
-void ModelDataCollector::collect_number_of_bites(const int &location, const int &number_of_bites) {
+void ModelDataCollector::collect_number_of_bites(core::LocationId location,
+                                                 const int &number_of_bites) {
   // v5 behaviour: start collecting once current_time >= start_collect_data_day
   if (Model::get_scheduler()->current_time()
       >= Model::get_config()->get_simulation_timeframe().get_start_collect_data_day()) {
@@ -773,7 +775,7 @@ void ModelDataCollector::collect_number_of_bites(const int &location, const int 
   }
 }
 
-void ModelDataCollector::record_1_infection(const int &location) {
+void ModelDataCollector::record_1_infection(core::LocationId location) {
   if (!recording_) { return; }
   monthly_number_of_new_infections_by_location_[location]++;
 }
@@ -942,8 +944,8 @@ void ModelDataCollector::record_amu_afu(Person* person, Therapy* therapy,
   }
 }
 
-double ModelDataCollector::get_blood_slide_prevalence(const int &location, const int &age_from,
-                                                      const int &age_to) {
+double ModelDataCollector::get_blood_slide_prevalence(core::LocationId location,
+                                                      const int &age_from, const int &age_to) {
   double blood_slide_numbers = 0;
   double popsize = 0;
   //    age count from 0
@@ -1079,7 +1081,7 @@ void ModelDataCollector::zero_population_statistics() {
 }
 
 void ModelDataCollector::record_1_person_seeking_treatment_by_location_age_index(
-    const int &location, const int &age_index) {
+    core::LocationId location, const int &age_index) {
   if (!recording_) { return; }
   if (location < 0 || location >= Model::get_config()->number_of_locations()) { return; }
   if (age_index < 0) { return; }

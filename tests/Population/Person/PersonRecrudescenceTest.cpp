@@ -168,6 +168,7 @@ TEST_F(PersonRecrudescenceTest, SymptomaticRecrudescenceYoungChild) {
             auto* progress_event = dynamic_cast<ProgressToClinicalEvent*>(event.get());
             if (progress_event != nullptr && 
                 progress_event->clinical_caused_parasite() == clinical_parasite_.get()) {
+                EXPECT_TRUE(progress_event->is_recurrence());
                 found_recurrence_event = true;
                 
                 // Verify the event is scheduled for a reasonable time (7-54 days in the future)
@@ -368,6 +369,7 @@ TEST_F(PersonRecrudescenceTest, TreatmentFailureHandling) {
             auto* progress_event = dynamic_cast<ProgressToClinicalEvent*>(event.get());
             if (progress_event != nullptr && 
                 progress_event->clinical_caused_parasite() == clinical_parasite_.get()) {
+                EXPECT_TRUE(progress_event->is_recurrence());
                 found_recurrence_event = true;
                 break;
             }

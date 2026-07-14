@@ -3,10 +3,10 @@
 
 #include <sstream>
 
-#include "Population/Person/Person.h"
-#include "Treatment/Therapies/Therapy.h"
 #include "Core/Scheduler/Scheduler.h"
+#include "Population/Person/Person.h"
 #include "Simulation/Model.h"
+#include "Treatment/Therapies/Therapy.h"
 
 // This is the unit test for the find_age_range_index function
 // std::vector<double> age_boundaries = {2.7, 5.5, 10.8, 20.8};
@@ -19,29 +19,29 @@
 //     " << index << std::endl;
 // }
 // NOTE: This function can be generalized and moved to a utility class
-size_t MFTAgeBasedStrategy::find_age_range_index(
-    const std::vector<double> &ageBoundaries, double age) {
+size_t MFTAgeBasedStrategy::find_age_range_index(const std::vector<double> &age_boundaries,
+                                                 double age) {
   // using binary search to find the age range index
-  if (age < ageBoundaries[0]) {
+  if (age < age_boundaries[0]) {
     // Age is below the first boundary
     return 0;
   }
-  if (age >= ageBoundaries.back()) {
+  if (age >= age_boundaries.back()) {
     // Age is above the last boundary, return the size of the boundaries which
     // is the last index of the therapy list
-    return ageBoundaries.size();
+    return age_boundaries.size();
   }
 
   size_t left = 0;
-  size_t right = ageBoundaries.size() - 1;
+  size_t right = age_boundaries.size() - 1;
 
   while (left < right) {
-    size_t mid = left + (right - left) / 2;
+    size_t mid = left + ((right - left) / 2);
 
     // if found the age at the boundaries, return the next index
-    if (age == ageBoundaries[mid]) { return mid + 1; }
+    if (age == age_boundaries[mid]) { return mid + 1; }
 
-    if (age > ageBoundaries[mid]) {
+    if (age > age_boundaries[mid]) {
       left = mid + 1;
     } else {
       right = mid;
@@ -57,18 +57,16 @@ size_t MFTAgeBasedStrategy::find_age_range_index(double age) const {
   return find_age_range_index(age_boundaries, age);
 }
 
-MFTAgeBasedStrategy::MFTAgeBasedStrategy()
-    : IStrategy("MFTAgeBased", MFTAgeBased) {}
+MFTAgeBasedStrategy::MFTAgeBasedStrategy() : IStrategy("MFTAgeBased", StrategyType::MFTAgeBased) {}
 
-void MFTAgeBasedStrategy::add_therapy(Therapy* therapy) {
-  therapy_list.push_back(therapy);
-}
+void MFTAgeBasedStrategy::add_therapy(Therapy* therapy) { therapy_list.push_back(therapy); }
 
 Therapy* MFTAgeBasedStrategy::get_therapy(Person* person) {
-  auto therapyIndex = find_age_range_index(person->age_in_floating(Model::get_scheduler()->current_time()));
+  auto therapy_index =
+      find_age_range_index(person->age_in_floating(Model::get_scheduler()->current_time()));
   // std::cout << "The age " << person->age_in_floating()
   //           << " is receiving therapy: " << therapyIndex << std::endl;
-  return therapy_list[therapyIndex];
+  return therapy_list[therapy_index];
 }
 
 std::string MFTAgeBasedStrategy::to_string() const {

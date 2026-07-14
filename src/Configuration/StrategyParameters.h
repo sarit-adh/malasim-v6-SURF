@@ -124,6 +124,9 @@ public:
     [[nodiscard]] int get_initial_strategy_id() const { return initial_strategy_id_; }
     void set_initial_strategy_id(const int &value) { initial_strategy_id_ = value; }
 
+    [[nodiscard]] int get_second_line_strategy_id() const { return second_line_strategy_id_; }
+    void set_second_line_strategy_id(const int value) { second_line_strategy_id_ = value; }
+
     [[nodiscard]] MassDrugAdministration get_mda() const { return mass_drug_administration_; }
     void set_mass_drug_administration(const MassDrugAdministration& value) { mass_drug_administration_ = value; }
 
@@ -144,6 +147,7 @@ public:
 private:
     std::map<int, StrategyInfo> strategy_db_raw_;  // Changed from vector to map
     int initial_strategy_id_ = -1;
+    int second_line_strategy_id_ = -1;
     MassDrugAdministration mass_drug_administration_;
     YAML::Node node_;
 };
@@ -263,6 +267,7 @@ struct convert<StrategyParameters> {
         node["strategy_db"] = strategy_db_node;
 
         node["initial_strategy_id"] = rhs.get_initial_strategy_id();
+        node["second_line_strategy_id"] = rhs.get_second_line_strategy_id();
         node["mass_drug_administration"] = rhs.get_mda();
         return node;
     }
@@ -282,6 +287,8 @@ struct convert<StrategyParameters> {
         rhs.set_node(node["strategy_db"]);
 
         rhs.set_initial_strategy_id(node["initial_strategy_id"].as<int>());
+        rhs.set_second_line_strategy_id(
+            node["second_line_strategy_id"] ? node["second_line_strategy_id"].as<int>() : -1);
         rhs.set_mass_drug_administration(node["mass_drug_administration"].as<StrategyParameters::MassDrugAdministration>());
         return true;
     }

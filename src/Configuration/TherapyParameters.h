@@ -47,9 +47,6 @@ public:
   [[nodiscard]] double get_tf_rate() const { return tf_rate_; }
   void set_tf_rate(const double value) { tf_rate_ = value; }
 
-  [[nodiscard]] int get_recurrent_therapy_id() const { return recurrent_therapy_id_; }
-  void set_recurrent_therapy_id(const int value) { recurrent_therapy_id_ = value; }
-
   [[nodiscard]] const std::map<int, TherapyInfo>& get_therapy_db_raw() const { return therapy_db_raw_; }
   void set_therapy_db_raw(const std::map<int, TherapyInfo>& value) { therapy_db_raw_ = value; }
 
@@ -67,7 +64,6 @@ public:
 private:
   int tf_testing_day_ = 28;
   double tf_rate_ = 0.1;
-  int recurrent_therapy_id_ = -1;
   std::map<int, TherapyInfo> therapy_db_raw_;  // Changed from vector to map
   YAML::Node node_;
 };
@@ -150,12 +146,6 @@ struct convert<TherapyParameters> {
     }
     rhs.set_tf_testing_day(node["tf_testing_day"].as<int>());
     rhs.set_tf_rate(node["tf_rate"].as<double>());
-
-    if (node["recurrent_therapy_id"]) {
-      rhs.set_recurrent_therapy_id(node["recurrent_therapy_id"].as<int>());
-    } else {
-      rhs.set_recurrent_therapy_id(-1);
-    }
 
     // Decode therapy_db as a map
     std::map<int, TherapyParameters::TherapyInfo> therapy_db;
