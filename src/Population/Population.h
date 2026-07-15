@@ -67,14 +67,25 @@ public:
    * @param oldValue
    * @param newValue
    */
-  virtual void notify_change(Person* person, const Person::Property &property,
-                             const void* old_value, const void* new_value);
+  virtual void notify_change(Person* person,
+                             const Person::Property &property,
+                             const void* old_value,
+                             const void* new_value);
 
+  /**
+   * Simulate infectious mosquito bites for the current day.
+   *
+   * For each location, the event draws a Poisson-distributed bite count from
+   * the delayed force of infection, samples recipients by relative biting
+   * weight, evaluates infection, and then finalizes at most one new liver-stage
+   * infection per person.
+   */
   virtual void perform_infection_event();
 
   void introduce_initial_cases();
   //
-  void introduce_parasite(const int &location, Genotype* parasite_type,
+  void introduce_parasite(const int &location,
+                          Genotype* parasite_type,
                           const int &num_of_infections);
 
   static void setup_initial_infection(Person* person, Genotype* parasite_type);
@@ -93,7 +104,8 @@ public:
 
   void perform_circulation_event();
 
-  void perform_circulation_for_1_location(const int &from_location, const int &target_location,
+  void perform_circulation_for_1_location(const int &from_location,
+                                          const int &target_location,
                                           const int &number_of_circulations,
                                           std::vector<Person*> &today_circulations);
 
@@ -155,6 +167,44 @@ public:
   }
 
 private:
+  /**
+   * Calculate the challenge-mode infection probability for one person.
+   *
+   * Immunity at or below 0.2 leaves the configured transmission probability
+   * unchanged. Immunity at or above 0.8 uses a probability of 0.1. Values
+   * between those thresholds are linearly interpolated.
+   */
+  [[nodiscard]] static double calculate_challenge_infection_probability(
+      Person &person, double transmission_probability);
+
+  /** Draw once and determine whether an infectious bite causes infection. */
+  [[nodiscard]] static bool is_infection_caused_by_bite(Person &person,
+                                                        bool use_sporozoite_challenge);
+
+  /** Return whether the person has an available liver stage for a new infection. */
+  [[nodiscard]] static bool can_receive_new_infection(Person &person);
+
+  /**
+   * Process one sampled bite and retain its genotype when infection succeeds.
+   *
+   * A person may receive multiple bites and therefore accumulate multiple
+   * candidate genotypes, but is inserted into infected_people only once.
+   */
+  static void process_bite(Person &person,
+                           int location,
+                           int tracking_index,
+                           bool use_sporozoite_challenge,
+                           PersonPtrVector &infected_people);
+
+  /** Generate and process today's bites for a single location. */
+  void process_infections_at_location(int location,
+                                      int tracking_index,
+                                      bool use_sporozoite_challenge,
+                                      PersonPtrVector &infected_people);
+
+  /** Record and choose one candidate genotype for each newly infected person. */
+  static void finalize_today_infections(const PersonPtrVector &infected_people);
+
   std::unique_ptr<PersonIndexAll> all_persons_{nullptr};
 
   std::unique_ptr<PersonIndexPtrList> person_index_list_{nullptr};
@@ -181,4 +231,3 @@ T* Population::get_person_index() {
   return nullptr;
 }
 #endif  // POPULATION_H
-

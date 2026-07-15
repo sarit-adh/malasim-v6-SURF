@@ -349,6 +349,16 @@ public:
                                                      std::vector<T*> &all_objects, bool is_shuffled,
                                                      double sum_distribution = -1);
 
+  /**
+   * Sample weighted objects with replacement.
+   *
+   * @param number_of_samples Number of pointers returned.
+   * @param distribution Non-negative weight for each object.
+   * @param all_objects Objects corresponding positionally to distribution.
+   * @param is_shuffled Whether to shuffle the sampled pointers after drawing.
+   * @param sum_distribution Precomputed weight sum, or a negative value to
+   * calculate it from distribution.
+   */
   template <class T>
   [[nodiscard]] std::vector<T*> roulette_sampling(int number_of_samples,
                                                   std::vector<double> &distribution,
@@ -448,7 +458,7 @@ std::vector<T*> utils::Random::multinomial_sampling(int size, std::vector<double
   return samples;
 }
 
-/* Roulette sampling is without replacement, means 1 person can be selected multiple times */
+// Each draw is independent, so an object can appear more than once.
 template <class T>
 std::vector<T*> utils::Random::roulette_sampling(int number_of_samples,
                                                  std::vector<double> &distribution,

@@ -133,6 +133,22 @@ population->perform_infection_event();
 population->has_0_case();
 ```
 
+`perform_infection_event()` processes one simulation day in five stages:
+
+1. Read the delayed force of infection for each location.
+2. Draw the number of infectious bites from the location's seasonal Poisson rate.
+3. Sample bite recipients by relative biting weight. Sampling is with replacement,
+   so one person may receive multiple bites in a day.
+4. Sample mosquito genotypes and evaluate the configured infection probability.
+   Challenge mode interpolates between the transmission parameter at low immunity
+   and `0.1` at high immunity.
+5. Retain every successful candidate genotype, then randomly choose one genotype
+   and create at most one new liver-stage infection per person.
+
+Bites are counted whenever a living recipient is sampled, whether or not the
+mosquito carries a genotype or the bite causes infection. People who are already
+exposed or already have a liver-stage parasite cannot receive another infection.
+
 ## Implementation Details
 
 ### Population Indexing

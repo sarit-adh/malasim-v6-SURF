@@ -53,17 +53,14 @@ bool Model::initialize() {
 
     spdlog::info("Model initialized with seed: " + std::to_string(random_->get_seed()));
 
-    if (cli_input_.output_path.empty()) {
-      cli_input_.output_path = "./";
-    }
+    if (cli_input_.output_path.empty()) { cli_input_.output_path = "./"; }
 
     // add reporter here
     if (cli_input_.reporter.empty()) {
       add_reporter(Reporter::MakeReport(Reporter::SQLITE_MONTHLY_REPORTER));
     } else {
       if (Reporter::ReportTypeMap.contains(cli_input_.reporter)) {
-        add_reporter(Reporter::MakeReport(
-            Reporter::ReportTypeMap[cli_input_.reporter]));
+        add_reporter(Reporter::MakeReport(Reporter::ReportTypeMap[cli_input_.reporter]));
       }
     }
 
@@ -73,8 +70,7 @@ bool Model::initialize() {
 
     // initialize reporters
     for (auto &reporter : reporters_) {
-      reporter->initialize(cli_input_.job_number,
-                           cli_input_.output_path);
+      reporter->initialize(cli_input_.job_number, cli_input_.output_path);
     }
     spdlog::info("Model initialized reporters.");
 
@@ -85,8 +81,7 @@ bool Model::initialize() {
     set_treatment_strategy(config_->get_strategy_parameters().get_initial_strategy_id());
     spdlog::info("Model initialized treatment strategy.");
 
-    set_second_line_strategy(
-        config_->get_strategy_parameters().get_second_line_strategy_id());
+    set_second_line_strategy(config_->get_strategy_parameters().get_second_line_strategy_id());
     spdlog::info("Model initialized second-line treatment strategy.");
 
     build_initial_treatment_coverage();
@@ -122,14 +117,12 @@ bool Model::initialize() {
     if (cli_input_.record_movement) {
       // Generate a movement reporter
       auto reporter = Reporter::MakeReport(Reporter::ReportType::MOVEMENT_REPORTER);
-      reporter->initialize(cli_input_.job_number,
-                           cli_input_.output_path);
+      reporter->initialize(cli_input_.job_number, cli_input_.output_path);
       add_reporter(std::move(reporter));
     }
     is_initialized_ = true;
   } else {
-    spdlog::error("Failed to load configuration file: "
-                  + cli_input_.input_path);
+    spdlog::error("Failed to load configuration file: " + cli_input_.input_path);
   }
   return is_initialized_;
 }
@@ -178,7 +171,7 @@ void Model::before_run() {
   // so we can confirm all overrides were applied correctly before the run.
   // --------------------------------------------------------------------------
   if (config_ != nullptr) {
-    namespace P = ImmuneSystemOverridePaths;
+    namespace isop = ImmuneSystemOverridePaths;
 
     // NOTE: adjust these two accessor names if your Config exposes the object
     // under a different name (e.g. get_immune_system_parameter_overrides() /
@@ -200,31 +193,31 @@ void Model::before_run() {
       // Resolve the value currently live in the config for a given override path.
       // Returns NaN for a path with no corresponding live field.
       auto effective_value = [&](const std::string &path) -> double {
-        if (path == P::K_Z) {
+        if (path == isop::K_Z) {
           return config_->get_immune_system_parameters()
               .get_immune_effect_on_progression_to_clinical();
         }
-        if (path == P::K_KAPPA) {
+        if (path == isop::K_KAPPA) {
           return config_->get_immune_system_parameters().get_factor_effect_age_mature_immunity();
         }
-        if (path == P::K_MIDPOINT) {
+        if (path == isop::K_MIDPOINT) {
           return config_->get_immune_system_parameters().get_midpoint();
         }
-        if (path == P::K_P_CI_SYMP) {
+        if (path == isop::K_P_CI_SYMP) {
           return config_->get_epidemiological_parameters()
               .get_allow_new_coinfection_to_cause_symptoms()
               .get_probability();
         }
-        if (path == P::K_P_SEEK_BASE) {
+        if (path == isop::K_P_SEEK_BASE) {
           return config_->get_epidemiological_parameters()
               .get_age_based_probability_of_seeking_treatment()
               .get_power()
               .base;
         }
-        if (path == P::K_MUTATION_PROB) {
+        if (path == isop::K_MUTATION_PROB) {
           return config_->get_genotype_parameters().get_mutation_probability_per_locus();
         }
-        if (path == P::K_DEFAULT_CNV_REVERSION_MULTIPLIER) {
+        if (path == isop::K_DEFAULT_CNV_REVERSION_MULTIPLIER) {
           return config_->get_genotype_parameters().get_default_cnv_reversion_multiplier();
         }
         return std::numeric_limits<double>::quiet_NaN();
@@ -248,7 +241,7 @@ void Model::before_run() {
         // Config::apply_selected_immune_system_parameter_candidate), so a negative
         // override is intentionally NOT applied.
         const bool sentinel_keep_default =
-            ((path == P::K_MUTATION_PROB) || (path == P::K_DEFAULT_CNV_REVERSION_MULTIPLIER))
+            ((path == isop::K_MUTATION_PROB) || (path == isop::K_DEFAULT_CNV_REVERSION_MULTIPLIER))
             && (override_val < 0.0);
 
         if (sentinel_keep_default) {
@@ -261,9 +254,7 @@ void Model::before_run() {
             std::fabs(effective - override_val) <= (1e-9 * std::max(1.0, std::fabs(override_val)));
         spdlog::info("    [{}] {}: override={}, effective={}", applied ? "OK" : "MISMATCH", path,
                      override_val, effective);
-        if (!applied) {
-          spdlog::warn("    ^ override for '{}' was NOT applied correctly!", path);
-        }
+        if (!applied) { spdlog::warn("    ^ override for '{}' was NOT applied correctly!", path); }
       }
     }
     spdlog::info("======================================================================");
@@ -320,7 +311,7 @@ void Model::daily_update() {
   // index will be overridden with new cohort to use N days later and infection
   // event used the prmc at the tracking index for the today infection
   auto tracking_index = scheduler_->current_time() % config_->number_of_tracking_days();
-  mosquito_->infect_new_cohort_in_PRMC(config_.get(), random_.get(), population_.get(),
+  mosquito_->infect_new_cohort_in_prmc(config_.get(), random_.get(), population_.get(),
                                        tracking_index);
 
   // this function must be called after mosquito infect new cohort in prmc
@@ -372,13 +363,10 @@ void Model::set_treatment_strategy(const int &strategy_id) {
   treatment_strategy_->adjust_started_time_point(Model::get_scheduler()->current_time());
 }
 
-IStrategy* Model::get_second_line_strategy() {
-  return get_instance()->second_line_strategy_;
-}
+IStrategy* Model::get_second_line_strategy() { return get_instance()->second_line_strategy_; }
 
 void Model::set_second_line_strategy(const int strategy_id) {
-  second_line_strategy_ =
-      strategy_id == -1 ? nullptr : Model::get_strategy_db()[strategy_id].get();
+  second_line_strategy_ = strategy_id == -1 ? nullptr : Model::get_strategy_db()[strategy_id].get();
   if (second_line_strategy_ != nullptr && second_line_strategy_ != treatment_strategy_) {
     second_line_strategy_->adjust_started_time_point(Model::get_scheduler()->current_time());
   }
