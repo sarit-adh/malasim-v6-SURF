@@ -31,7 +31,7 @@ void Mosquito::initialize(Config* config) {
 void Mosquito::infect_new_cohort_in_prmc(Config* config,
                                          utils::Random* random,
                                          Population* population,
-                                         const int &tracking_index) {
+                                         int tracking_index) {
   auto &location_db = config->location_db();
   // for each location fill prmc at tracking_index row with sampling genotypes
   for (int loc = 0; loc < config->number_of_locations(); loc++) {

@@ -30,7 +30,7 @@ public:
   void infect_new_cohort_in_prmc(Config* config,
                                  utils::Random* random,
                                  Population* population,
-                                 const int &tracking_index);
+                                 int tracking_index);
 
   std::vector<std::vector<std::vector<Genotype*>>> genotypes_table; /* Mosquito table */
 

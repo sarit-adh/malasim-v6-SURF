@@ -774,7 +774,6 @@ void Population::update_all_individuals() {
   // }
 }
 
-// TODO: it should be called "execute_all_individual_events" for an input time
 void Population::execute_all_individual_events(int up_to_time) {
   if (all_persons_ == nullptr) {
     throw std::runtime_error(
