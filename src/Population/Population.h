@@ -72,16 +72,6 @@ public:
                              const void* old_value,
                              const void* new_value);
 
-  /**
-   * Simulate infectious mosquito bites for the current day.
-   *
-   * For each location, the event draws a Poisson-distributed bite count from
-   * the delayed force of infection, samples recipients by relative biting
-   * weight, evaluates infection, and then finalizes at most one new liver-stage
-   * infection per person.
-   */
-  virtual void perform_infection_event();
-
   void perform_infection_event_at_location(int location, int tracking_index);
 
   void introduce_initial_cases();
@@ -92,15 +82,9 @@ public:
 
   static void setup_initial_infection(Person* person, Genotype* parasite_type);
 
-  void persist_current_force_of_infection_to_use_n_days_later();
-
   void persist_force_of_infection_at_location(int location, int tracking_index);
 
-  void perform_birth_event();
-
   void perform_birth_event_at_location(int location);
-
-  void perform_death_event();
 
   void perform_death_event_at_location(int location);
 
@@ -108,11 +92,7 @@ public:
 
   Person* give_1_birth(const int &location);
 
-  void clear_all_dead_state_individual();
-
   void clear_dead_people_at_location(int location);
-
-  void perform_circulation_event();
 
   [[nodiscard]] IntVector prepare_circulation_context() const;
 
@@ -126,8 +106,6 @@ public:
   bool has_0_case();
 
   void initialize_person_indices();
-
-  void update_all_individuals();
 
   void prepare_daily_state_at_location(int location);
 

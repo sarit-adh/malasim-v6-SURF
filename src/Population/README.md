@@ -108,13 +108,9 @@ population->initialize();
 // Add new individual
 population->add_person(person);
 
-// Handle demographic events
-population->perform_birth_event();
-population->perform_death_event();
-
-// Update population state
-population->update_all_individuals();
-population->update_current_foi();
+// Prepare one location for today's transmission pipeline. This updates people,
+// applies deaths and births, and builds aligned sampling state.
+population->prepare_daily_state_at_location(location);
 ```
 
 ### Infection Management
@@ -126,14 +122,14 @@ population->introduce_parasite(
     num_infections
 );
 
-// Handle infection events
-population->perform_infection_event();
+// Handle infection events for one location
+population->perform_infection_event_at_location(location, tracking_index);
 
 // Check infection status
 population->has_0_case();
 ```
 
-`perform_infection_event()` processes one simulation day in five stages:
+`perform_infection_event_at_location()` processes one location in five stages:
 
 1. Read the delayed force of infection for each location.
 2. Draw the number of infectious bites from the location's seasonal Poisson rate.

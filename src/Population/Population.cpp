@@ -227,22 +227,6 @@ std::size_t Population::size_residents_only(const int &location) {
 
 std::size_t Population::size_at(const int &location) { return popsize_by_location_[location]; }
 
-void Population::perform_infection_event() {
-  PersonPtrVector infected_people;
-  const auto* config = Model::get_config();
-  const int tracking_index =
-      Model::get_scheduler()->current_time() % config->number_of_tracking_days();
-  const bool use_sporozoite_challenge =
-      config->get_transmission_settings().get_transmission_parameter() > 0.0;
-
-  for (int location = 0; location < config->number_of_locations(); ++location) {
-    process_infections_at_location(location, tracking_index, use_sporozoite_challenge,
-                                   infected_people);
-  }
-
-  finalize_today_infections(infected_people);
-}
-
 void Population::perform_infection_event_at_location(const int location, const int tracking_index) {
   PersonPtrVector infected_people;
   const bool use_sporozoite_challenge =
@@ -528,12 +512,6 @@ void Population::setup_initial_infection(Person* person, Genotype* parasite_type
   }
 }
 
-void Population::perform_birth_event() {
-  for (auto loc = 0; loc < Model::get_config()->number_of_locations(); loc++) {
-    perform_birth_event_at_location(loc);
-  }
-}
-
 void Population::perform_birth_event_at_location(const int location) {
   const auto poisson_mean = Model::get_config()->get_population_demographic().get_birth_rate()
                             * static_cast<double>(size(location))
@@ -585,13 +563,6 @@ Person* Population::give_1_birth(const int &location) {
   return newborn;
 }
 
-void Population::perform_death_event() {
-  for (auto location = 0; location < Model::get_config()->number_of_locations(); ++location) {
-    perform_death_event_at_location(location);
-    clear_dead_people_at_location(location);
-  }
-}
-
 void Population::perform_death_event_at_location(const int location) {
   auto* pi = get_person_index<PersonIndexByLocationStateAgeClass>();
   if (pi == nullptr) { return; }
@@ -619,22 +590,6 @@ void Population::perform_death_event_at_location(const int location) {
   }
 }
 
-void Population::clear_all_dead_state_individual() {
-  // return all Death to object pool and clear vPersonIndex[l][dead][ac] for all location and ac
-  auto* pi = get_person_index<PersonIndexByLocationStateAgeClass>();
-  PersonPtrVector remove_persons;
-
-  for (int loc = 0; loc < Model::get_config()->number_of_locations(); loc++) {
-    for (int ac = 0; ac < Model::get_config()->number_of_age_classes(); ac++) {
-      for (auto* person : pi->vPerson()[loc][Person::DEAD][ac]) {
-        remove_persons.push_back(person);
-      }
-    }
-  }
-
-  for (Person* person : remove_persons) { remove_dead_person(person); }
-}
-
 void Population::clear_dead_people_at_location(const int location) {
   auto* pi = get_person_index<PersonIndexByLocationStateAgeClass>();
   PersonPtrVector dead_people;
@@ -645,14 +600,6 @@ void Population::clear_dead_people_at_location(const int location) {
   for (auto* person : dead_people) {
     remove_from_daily_sampling_state(location, person);
     remove_dead_person(person);
-  }
-}
-
-void Population::perform_circulation_event() {
-  const auto circulation_context = prepare_circulation_context();
-  for (int from_location = 0; from_location < Model::get_config()->number_of_locations();
-       from_location++) {
-    perform_circulation_from_location(from_location, circulation_context);
   }
 }
 
@@ -763,31 +710,6 @@ bool Population::has_0_case() {
   return true;
 }
 
-void Population::update_all_individuals() {
-  // update all individuals
-  auto* pi = get_person_index<PersonIndexByLocationStateAgeClass>();
-  auto* config = Model::get_config();
-  const auto number_of_locations = config->number_of_locations();
-  const auto number_of_age_classes = config->number_of_age_classes();
-  auto &persons_by_location_state_age = pi->vPerson();
-  for (int loc = 0; loc < number_of_locations; loc++) {
-    for (int hs = 0; hs < Person::DEAD; hs++) {
-      for (int ac = 0; ac < number_of_age_classes; ac++) {
-        for (auto* person : persons_by_location_state_age[loc][hs][ac]) { person->update(); }
-      }
-    }
-  }
-  // if (all_persons_ == nullptr) {
-  //   throw std::runtime_error("PersonIndexAll not found in Population::update_all_individuals");
-  // }
-  // for (auto &person_ptr : all_persons_->v_person()) {
-  //   if (person_ptr) {
-  //     if (person_ptr->get_host_state() == Person::DEAD) { continue; }
-  //     person_ptr->update();
-  //   }
-  // }
-}
-
 void Population::execute_all_individual_events(int up_to_time) {
   if (all_persons_ == nullptr) {
     throw std::runtime_error(
@@ -798,17 +720,6 @@ void Population::execute_all_individual_events(int up_to_time) {
       if (person_ptr->get_host_state() == Person::DEAD) { continue; }
       person_ptr->update_events(up_to_time);
     }
-  }
-}
-
-void Population::persist_current_force_of_infection_to_use_n_days_later() {
-  auto* config = Model::get_config();
-  const auto number_of_locations = config->number_of_locations();
-  auto &force_of_infection_for_today =
-      force_of_infection_for_n_days_by_location_[Model::get_scheduler()->current_time()
-                                                 % config->number_of_tracking_days()];
-  for (auto loc = 0; loc < number_of_locations; loc++) {
-    force_of_infection_for_today[loc] = current_force_of_infection_by_location_[loc];
   }
 }
 
