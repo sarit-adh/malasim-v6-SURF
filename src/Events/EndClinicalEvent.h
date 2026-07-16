@@ -17,9 +17,9 @@ class EndClinicalEvent : public PersonEvent {
 public:
   // disallow copy, assign and move
   EndClinicalEvent(const EndClinicalEvent &) = delete;
-  EndClinicalEvent& operator=(const EndClinicalEvent &) = delete;
+  EndClinicalEvent &operator=(const EndClinicalEvent &) = delete;
   EndClinicalEvent(EndClinicalEvent &&) = delete;
-  EndClinicalEvent& operator=(EndClinicalEvent &&) = delete;
+  EndClinicalEvent &operator=(EndClinicalEvent &&) = delete;
   explicit EndClinicalEvent(Person* person) : PersonEvent(person) {}
   ~EndClinicalEvent() override = default;
 
@@ -28,7 +28,8 @@ public:
     clinical_caused_parasite_ = value;
   }
 
-  [[nodiscard]] const std::string name() const override { return "EndClinicalEvent"; }
+  static constexpr std::string_view EVENT_NAME{"EndClinicalEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   ClonalParasitePopulation* clinical_caused_parasite_{nullptr};

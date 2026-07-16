@@ -7,16 +7,25 @@
 #ifndef ANNUALBETAUPDATEEVENT_HXX
 #define ANNUALBETAUPDATEEVENT_HXX
 
-#include <math.h>
+#include <cmath>
 
 #include "Configuration/Config.h"
 #include "Core/Scheduler/Scheduler.h"
 #include "Events/Event.h"
-#include "Utils/Helpers/TimeHelpers.h"
 #include "Simulation/Model.h"
-#include "Utils/Helpers/StringHelpers.h"
 
 class AnnualBetaUpdateEvent : public WorldEvent {
+public:
+  AnnualBetaUpdateEvent(const AnnualBetaUpdateEvent &) = delete;
+  AnnualBetaUpdateEvent(AnnualBetaUpdateEvent &&) = delete;
+  AnnualBetaUpdateEvent &operator=(const AnnualBetaUpdateEvent &) = delete;
+  AnnualBetaUpdateEvent &operator=(AnnualBetaUpdateEvent &&) = delete;
+  AnnualBetaUpdateEvent(float rate, int start) : rate_(rate) { set_time(start); }
+  ~AnnualBetaUpdateEvent() override = default;
+
+  static constexpr std::string_view EVENT_NAME{"annual_beta_update"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
+
 private:
   float rate_ = 0.0;
 
@@ -37,29 +46,17 @@ private:
     Model::get_scheduler()->schedule_population_event(std::move(event));
 
     // Log on demand
-    spdlog::debug(
-        "Annual beta update event: {} - {} {}",
-        Model::get_scheduler()->get_current_date_string(),
-        rate_,
-        location_db[0].beta);
+    spdlog::debug("Annual beta update event: {} - {} {}",
+                  Model::get_scheduler()->get_current_date_string(), rate_, location_db[0].beta);
   }
 
   // Update the bete by the given rate, round up ate the fifth decimal place but
   // clamp at 0.0
-  double adjust(double beta, double rate) {
+  static double adjust(double beta, double rate) {
     beta += (beta * rate);
-    beta = int(beta * pow(10, 5)) / pow(10, 5);
+    beta = static_cast<int>(beta * pow(10, 5)) / pow(10, 5);
     return (beta < 0.0) ? 0.0 : beta;
   }
-
-public:
-  inline static const std::string EventName = "annual_beta_update_event";
-
-  AnnualBetaUpdateEvent(float rate, int start) : rate_(rate) { set_time(start); }
-  ~AnnualBetaUpdateEvent() = default;
-
-  // Return the name of this event
-  const std::string name() const override { return EventName; }
 };
 
 #endif

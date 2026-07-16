@@ -5,25 +5,29 @@
 
 class ChangeWithinHostInducedFreeRecombinationEvent : public WorldEvent {
 public:
-    // Disallow copy
-    ChangeWithinHostInducedFreeRecombinationEvent(const ChangeWithinHostInducedFreeRecombinationEvent&) = delete;
-    ChangeWithinHostInducedFreeRecombinationEvent& operator=(const ChangeWithinHostInducedFreeRecombinationEvent&) = delete;
+  // Disallow copy
+  ChangeWithinHostInducedFreeRecombinationEvent(
+      const ChangeWithinHostInducedFreeRecombinationEvent &) = delete;
+  ChangeWithinHostInducedFreeRecombinationEvent &operator=(
+      const ChangeWithinHostInducedFreeRecombinationEvent &) = delete;
 
-    // Disallow move
-    ChangeWithinHostInducedFreeRecombinationEvent(ChangeWithinHostInducedFreeRecombinationEvent&&) = delete;
-    ChangeWithinHostInducedFreeRecombinationEvent& operator=(ChangeWithinHostInducedFreeRecombinationEvent&&) = delete;
+  // Disallow move
+  ChangeWithinHostInducedFreeRecombinationEvent(ChangeWithinHostInducedFreeRecombinationEvent &&) =
+      delete;
+  ChangeWithinHostInducedFreeRecombinationEvent &operator=(
+      ChangeWithinHostInducedFreeRecombinationEvent &&) = delete;
 
-    explicit ChangeWithinHostInducedFreeRecombinationEvent(const bool &value = false, const int &at_time = -1);
-    ~ChangeWithinHostInducedFreeRecombinationEvent() override = default;
+  explicit ChangeWithinHostInducedFreeRecombinationEvent(const bool &value = false,
+                                                         const int &at_time = -1);
+  ~ChangeWithinHostInducedFreeRecombinationEvent() override = default;
 
-    [[nodiscard]] const std::string name() const override {
-        return "ChangeWithinHostInducedRecombinationEvent";
-    }
+  static constexpr std::string_view EVENT_NAME{"change_within_host_induced_free_recombination"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
-    bool value{true};
+  bool value{true};
 
 private:
-    void do_execute() override;
+  void do_execute() override;
 };
 
 #endif  // POMS_CHANGEWITHINHOSTINDUCEDFREERECOMBINATIONEVENT_H

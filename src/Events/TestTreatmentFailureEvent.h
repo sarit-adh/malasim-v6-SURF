@@ -24,14 +24,15 @@ class TestTreatmentFailureEvent : public PersonEvent {
 public:
   // disallow copy, assign and move
   TestTreatmentFailureEvent(const TestTreatmentFailureEvent &) = delete;
-  TestTreatmentFailureEvent& operator=(const TestTreatmentFailureEvent &) = delete;
+  TestTreatmentFailureEvent &operator=(const TestTreatmentFailureEvent &) = delete;
   TestTreatmentFailureEvent(TestTreatmentFailureEvent &&) = delete;
-  TestTreatmentFailureEvent& operator=(TestTreatmentFailureEvent &&) = delete;
+  TestTreatmentFailureEvent &operator=(TestTreatmentFailureEvent &&) = delete;
 
   explicit TestTreatmentFailureEvent(Person* person) : PersonEvent(person) {}
   ~TestTreatmentFailureEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override { return "TestTreatmentFailureEvent"; }
+  static constexpr std::string_view EVENT_NAME{"TestTreatmentFailureEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
   ClonalParasitePopulation* clinical_caused_parasite() { return clinical_caused_parasite_; }
   void set_clinical_caused_parasite(ClonalParasitePopulation* value) {

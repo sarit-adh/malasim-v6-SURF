@@ -15,7 +15,6 @@ ChangeTreatmentCoverageEvent::ChangeTreatmentCoverageEvent(
   set_time(treatment_coverage_model->starting_time);
 }
 
-
 ChangeTreatmentCoverageEvent::~ChangeTreatmentCoverageEvent() = default;
 
 void ChangeTreatmentCoverageEvent::do_execute() {

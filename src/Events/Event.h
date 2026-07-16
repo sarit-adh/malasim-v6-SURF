@@ -1,24 +1,24 @@
 #ifndef EVENT_H
 #define EVENT_H
 
-#include <string>
+#include <string_view>
 
 class Event {
 public:
   // Disallow copy
-  Event(const Event&) = delete;
-  Event& operator=(const Event&) = delete;
+  Event(const Event &) = delete;
+  Event &operator=(const Event &) = delete;
 
   // Disallow move
-  Event(Event&&) = delete;
-  Event& operator=(Event&&) = delete;
+  Event(Event &&) = delete;
+  Event &operator=(Event &&) = delete;
 
   Event() = default;
   virtual ~Event() = default;
 
   // Public interface
   void execute();  // Non-virtual public interface (Template Method)
-  [[nodiscard]] virtual const std::string name() const = 0;
+  [[nodiscard]] virtual std::string_view name() const noexcept = 0;
 
   // Public state management
   [[nodiscard]] bool is_executable() const { return executable_; }

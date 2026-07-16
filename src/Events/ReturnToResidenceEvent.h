@@ -19,7 +19,8 @@ public:
   explicit ReturnToResidenceEvent(Person* person) : PersonEvent(person) {}
   ~ReturnToResidenceEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override { return "ReturnToResidenceEvent"; }
+  static constexpr std::string_view EVENT_NAME{"ReturnToResidenceEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   void do_execute() override;

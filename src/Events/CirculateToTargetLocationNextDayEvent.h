@@ -30,9 +30,8 @@ public:
   [[nodiscard]] core::LocationId target_location() const { return target_location_; }
   void set_target_location(core::LocationId value) { target_location_ = value; }
 
-  [[nodiscard]] const std::string name() const override {
-    return "CirculateToTargetLocationNextDayEvent";
-  }
+  static constexpr std::string_view EVENT_NAME{"CirculateToTargetLocationNextDayEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   core::LocationId target_location_{0};

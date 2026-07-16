@@ -19,17 +19,19 @@ class MoveParasiteToBloodEvent : public PersonEvent {
   //  OBJECTPOOL(MoveParasiteToBloodEvent)
 public:
   // Disallow copy
-  MoveParasiteToBloodEvent(const MoveParasiteToBloodEvent&) = delete;
-  MoveParasiteToBloodEvent& operator=(const MoveParasiteToBloodEvent&) = delete;
+  MoveParasiteToBloodEvent(const MoveParasiteToBloodEvent &) = delete;
+  MoveParasiteToBloodEvent &operator=(const MoveParasiteToBloodEvent &) = delete;
 
   // Disallow move
-  MoveParasiteToBloodEvent(MoveParasiteToBloodEvent&&) = delete;
-  MoveParasiteToBloodEvent& operator=(MoveParasiteToBloodEvent&&) = delete;
+  MoveParasiteToBloodEvent(MoveParasiteToBloodEvent &&) = delete;
+  MoveParasiteToBloodEvent &operator=(MoveParasiteToBloodEvent &&) = delete;
 
   explicit MoveParasiteToBloodEvent(Person* person) : PersonEvent(person) {}
   ~MoveParasiteToBloodEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override { return "MoveParasiteToBloodEvent"; }
+  static constexpr std::string_view EVENT_NAME{"MoveParasiteToBloodEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
+
   Genotype* infection_genotype() { return infection_genotype_; }
   void set_infection_genotype(Genotype* infection_genotype) {
     infection_genotype_ = infection_genotype;

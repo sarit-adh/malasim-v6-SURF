@@ -13,8 +13,8 @@ public:
 
   explicit RaptEvent(Person* person) : PersonEvent(person) {}
   ~RaptEvent() override = default;
-
-  [[nodiscard]] const std::string name() const override { return "RAPT Event"; }
+  static constexpr std::string_view EVENT_NAME{"RAPT Event"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   void do_execute() override;

@@ -5,11 +5,9 @@
  */
 #include "ClinicalStudy.h"
 
-#include "Population/Person/Person.h"
-
 bool ClinicalStudy::check_enrollees() {
   // Scan each of the enrollees in turn
-  for (auto enrollee : enrollments) {
+  for (auto enrollee : enrollments_) {
     // Update how many days they've been enrolled
     enrollee.days++;
 
@@ -19,11 +17,11 @@ bool ClinicalStudy::check_enrollees() {
     // TODO Was the treatment successful?
     // Presuming deceased means that treatment failed
 
-    observations++;
+    observations_++;
   }
 
   // If we have enough observations, return true
-  return (observations >= TOTAL_OBSERVATIONS);
+  return (observations_ >= TOTAL_OBSERVATIONS);
 }
 
 void ClinicalStudy::check_population() {

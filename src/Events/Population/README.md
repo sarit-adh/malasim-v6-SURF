@@ -1,160 +1,106 @@
-# Events/Population
+# Population Events
 
-This module provides a comprehensive framework for managing population-level events in the simulation system. It includes a wide range of events related to parasite introduction, mutation, treatment strategies, and population dynamics.
+Population events are configuration-built `WorldEvent` instances for importation, mutation,
+treatment policy, transmission, movement, and mass drug administration.
 
-## Overview
+## Construction and ownership
 
-The Events/Population module consists of multiple components organized into several categories:
+Each configuration item has a `name` and an `info` sequence. `PopulationEventBuilder::build()`
+compares `name` with each event class's `static constexpr EVENT_NAME`, validates and converts the
+entries, and returns `std::vector<std::unique_ptr<WorldEvent>>`.
 
-### Event Builder
-
-#### PopulationEventBuilder
-A factory class that constructs various population-level events from YAML configuration.
-- Core functionality for creating all population-related events
-- Follows the factory pattern for event construction
-- Provides extensive validation of configuration nodes
-
-### Event Categories
-
-#### 1. Parasite Introduction Events
-- `ImportationEvent`: Basic parasite importation
-- `ImportationPeriodicallyEvent`: Periodic parasite introduction
-- `ImportationPeriodicallyRandomEvent`: Random periodic importation
-- `DistrictImportationDailyEvent`: Daily district-level importation
-- `IntroduceParasitesPeriodicallyEventV2`: Advanced periodic parasite introduction
-
-#### 2. Mutation Events
-- `IntroduceMutantEventBase`: Base class for mutant introduction
-- `Introduce580YMutantEvent`: Specific 580Y mutation introduction
-- `IntroduceAmodiaquineMutantEvent`: Amodiaquine resistance mutation
-- `IntroduceLumefantrineMutantEvent`: Lumefantrine resistance mutation
-- `IntroduceTripleMutantToDPMEvent`: Triple mutant introduction
-- `IntroducePlas2CopyParasiteEvent`: Plas2 copy variant introduction
-- `TurnOnMutationEvent`: Enables mutation
-- `TurnOffMutationEvent`: Disables mutation
-- `ChangeMutationProbabilityPerLocusEvent`: Modifies mutation rates
-- `ChangeMutationMaskEvent`: Updates mutation masks
-
-#### 3. Treatment Strategy Events
-- `ChangeTreatmentStrategyEvent`: Modifies treatment approach
-- `ChangeTreatmentCoverageEvent`: Updates treatment coverage
-- `SingleRoundMDAEvent`: Mass Drug Administration event
-- `ModifyNestedMFTEvent`: Multiple First-line Treatment modification
-- `RotateStrategyEvent`: Treatment strategy rotation
-
-#### 4. Environmental and Population Dynamic Events
-- `UpdateBetaRasterEvent`: Updates transmission parameters
-- `AnnualBetaUpdateEvent`: Yearly transmission updates
-- `AnnualCoverageUpdateEvent`: Yearly coverage updates
-- `ChangeCirculationPercentEvent`: Modifies circulation rates
-- `ChangeInterruptedFeedingRateEvent`: Updates feeding rates
-
-## Usage
-
-### Configuration-based Event Creation
-```yaml
-# Mutation Control Events
-- name: turn_on_mutation
-  info:
-    - date: 2000/1/1
-
-- name: change_mutation_mask
-  info:
-    - date: 2000/1/1
-      mutation_mask: "||||111||1000000,0||||||0000000000000|1"
-    - date: 2001/1/1
-      mutation_mask: "||||111||1000000,0||||||0010000000001|1"
-
-- name: change_mutation_probability_per_locus
-  info:
-    - date: 2000/1/1
-      mutation_probability_per_locus: 0.001
-
-# Treatment Strategy Events Example
-- name: change_treatment_strategy
-  info:
-    - date: 2000/3/2
-      strategy_id: 11
-    - date: 2005/6/2
-      strategy_id: 3
-
-# Mass Drug Administration Example
-- name: single_round_MDA
-  info:
-    - date: 2001/1/1
-      fraction_population_targeted: [1.0]
-      days_to_complete_all_treatments: 14
-
-# Treatment Coverage Example
-- name: change_treatment_coverage
-  info:
-    - type: SteadyTCM
-      date: 2005/2/1
-      p_treatment_under_5_by_location: [0.600000]
-      p_treatment_over_5_by_location: [0.550000]
-    - type: InflatedTCM
-      date: 2006/3/1
-      annual_inflation_rate: 0.01
-
-# Parasite Introduction Example
-- name: introduce_parasites
-  info:
-    - location: 0
-      parasite_info:
-        - date: 2002/3/20
-          genotype_aa_sequence: "||||YY1||KTHFIMG,x||||||FNCMYRIPRPYRA|1"
-          number_of_cases: 5
-
-# Mutant Introduction Example
-- name: introduce_580Y_parasites
-  info:
-    - location: 1
-      date: 2002/7/15
-      fraction: 0.2
-      alleles:
-        - chromosome: 13
-          locus: 11
-          allele: "Y"
-        - chromosome: 13
-          locus: 12
-          allele: "I"
-```
-
-### Code Example
 ```cpp
-// Using PopulationEventBuilder
-YAML::Node config = YAML::LoadFile("population_events.yaml");
-auto events = PopulationEventBuilder::build(config);
-
-// Events will be automatically executed by the simulation
-// at their scheduled times
+auto events = PopulationEventBuilder::build(event_node);
+for (auto &event : events) {
+  Model::get_scheduler()->schedule_population_event(std::move(event));
+}
 ```
 
-## Dependencies
+In normal startup this is handled by `PopulationEvents` and `Model`: configuration owns the built
+events until `release_events()`, after which the scheduler takes ownership. Event names are exposed
+without allocation:
 
-- `yaml-cpp`: Configuration parsing
-- `spdlog`: Logging functionality
-- Core simulation components:
-  - `Model`
-  - `Config`
-  - Base `Event` class
-  - Various strategy and mutation-related classes
+```cpp
+static constexpr std::string_view EVENT_NAME{"change_treatment_strategy"};
+[[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
+```
 
-## Directory Structure
+## Supported configuration names
 
-### Main Components
-- `PopulationEventBuilder.h/cpp`: Main event factory implementation
-- Various event implementation files (.h/.cpp pairs)
-- Event-specific header files (.hxx)
+### Importation
 
-### Subdirectories
-- `EventBuilders/`: Additional specialized event builders
+- `introduce_parasites`
+- `introduce_parasites_periodically`
+- `introduce_parasites_periodically_v2`
+- `importation_periodically_random`
+- `district_importation_daily`
 
-## Notes
+### Mutation and parasite variants
 
-- All events are configured through YAML configuration files
-- Events are executed automatically by the simulation system
-- Most events support location-specific targeting
-- Extensive logging is implemented for debugging and monitoring
-- Events can be combined and scheduled in any order
-- Configuration validation ensures proper event setup
+- `introduce_plas2_copy_parasite`
+- `introduce_amodiaquine_mutant`
+- `introduce_lumefantrine_mutant`
+- `introduce_580Y_mutant`
+- `introduce_triple_mutant_to_dpm`
+- `introduce_mutant_event`
+- `introduce_mutant_raster`
+- `turn_on_mutation`
+- `turn_off_mutation`
+- `change_mutation_mask`
+- `change_mutation_probability_per_locus`
+- `change_within_host_induced_free_recombination`
+
+See `EventBuilders/README.md` for the administrative-unit and raster mutant schemas.
+
+### Treatment and intervention
+
+- `change_treatment_coverage`
+- `change_treatment_strategy`
+- `single_round_MDA`
+- `modify_nested_mft_strategy`
+- `rotate_treatment_strategy`
+
+### Transmission and movement
+
+- `annual_beta_update`
+- `annual_coverage_update`
+- `change_circulation_percent`
+- `change_interrupted_feeding_rate`
+- `update_beta_raster_event`
+
+## Examples
+
+```yaml
+population_events:
+  - name: change_treatment_strategy
+    info:
+      - date: 2005/06/02
+        strategy_id: 3
+
+  - name: single_round_MDA
+    info:
+      - date: 2006/01/01
+        fraction_population_targeted: [1.0]
+        days_to_complete_all_treatments: 14
+
+  - name: introduce_parasites
+    info:
+      - location: 0
+        parasite_info:
+          - date: 2006/03/20
+            genotype_aa_sequence: "||||YY1||KTHFIMG,x||||||FNCMYRIPRPYRA|1"
+            number_of_cases: 5
+```
+
+Fields are event-specific. Date fields are converted relative to the simulation start date, and
+builders validate constraints such as location, strategy, fraction, duration, and raster shape
+before the event is scheduled.
+
+## Implementation notes
+
+- Recurring events schedule a newly allocated event with `std::unique_ptr`; they do not reschedule
+  the executing object.
+- `IntroduceMutantEventBase` provides shared fraction calculation and mutation logic to the
+  administrative-unit and raster events.
+- `PopulationEventBuilder.h/.cpp` contains the main dispatch and builders;
+  `EventBuilders/IntroduceMutantEventBuilder.cpp` contains spatial mutant builders.

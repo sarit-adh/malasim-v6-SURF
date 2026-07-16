@@ -1035,15 +1035,18 @@ public:
 
   virtual void collect_number_of_bites(core::LocationId location, const int &number_of_bites);
 
-  virtual void collect_1_clinical_episode(core::LocationId location, const int &age,
+  virtual void collect_1_clinical_episode(core::LocationId location,
+                                          const int &age,
                                           const int &age_class);
 
   virtual void update_person_days_by_years(const core::LocationId &location, const int &days);
 
   void calculate_eir();
 
-  void record_1_death(core::LocationId location, const int &birthday,
-                      const int &number_of_times_bitten, const int &age_group, const int &age);
+  void record_1_death(core::LocationId location,
+                      core::Age age,
+                      int age_class,
+                      double average_bites_per_day);
 
   void record_1_malaria_death(core::LocationId location, core::Age age, bool treated);
 
@@ -1051,19 +1054,26 @@ public:
 
   void record_1_tf(core::LocationId location, bool by_drug);
 
-  void record_1_treatment(core::LocationId location, core::Age age, core::AgeClass age_class,
+  void record_1_treatment(core::LocationId location,
+                          core::Age age,
+                          core::AgeClass age_class,
                           core::TherapyId therapy_id);
 
   // Record that one treatment has been given
-  void record_1_recrudescence_treatment(core::LocationId location, core::Age age,
-                                        core::AgeClass age_class, core::TherapyId therapy_id);
+  void record_1_recrudescence_treatment(core::LocationId location,
+                                        core::Age age,
+                                        core::AgeClass age_class,
+                                        core::TherapyId therapy_id);
 
-  void record_1_non_treated_case(core::LocationId location, core::Age age,
+  void record_1_non_treated_case(core::LocationId location,
+                                 core::Age age,
                                  core::AgeClass age_class);
 
   void record_1_mutation(const core::LocationId &location, Genotype* from, Genotype* to);
 
-  void record_1_mutation_by_drug(core::LocationId location, Genotype* from, Genotype* to,
+  void record_1_mutation_by_drug(core::LocationId location,
+                                 Genotype* from,
+                                 Genotype* to,
                                  int drug_id);
 
   void begin_time_step();
@@ -1073,17 +1083,21 @@ public:
   void update_utl_vector();
 
   //    void collect_1_non_resistant_treatment(const int& therapy_id);
-  void record_1_treatment_failure_by_therapy(core::LocationId location, const int &age,
+  void record_1_treatment_failure_by_therapy(core::LocationId location,
+                                             const int &age,
                                              const int &therapy_id);
-  void record_1_treatment_success_by_therapy(core::LocationId location, const int &age,
+  void record_1_treatment_success_by_therapy(core::LocationId location,
+                                             const int &age,
                                              const int &therapy_id);
 
   void update_after_run();
 
-  void record_amu_afu(Person* person, Therapy* therapy,
+  void record_amu_afu(Person* person,
+                      Therapy* therapy,
                       ClonalParasitePopulation* clinical_caused_parasite);
 
-  double get_blood_slide_prevalence(core::LocationId location, const int &age_from,
+  double get_blood_slide_prevalence(core::LocationId location,
+                                    const int &age_from,
                                     const int &age_to);
 
   [[nodiscard]] bool recording_data() const { return recording_; }
@@ -1094,8 +1108,10 @@ public:
   void zero_population_statistics();
   void record_1_malaria_death(core::LocationId location, core::Age age_class);
   void record_1_infection(core::LocationId location);
-  void record_1_death(core::LocationId location, const int &birthday,
-                      const int &number_of_times_bitten, const int &age_group);
+  void record_1_death(core::LocationId location,
+                      const int &birthday,
+                      const int &number_of_times_bitten,
+                      const int &age_group);
   void record_1_birth(core::LocationId location);
   void yearly_update();
   void collect_1_clinical_episode(core::LocationId location, const int &age_class);
@@ -1282,8 +1298,6 @@ public:
 
 private:
   bool recording_ = false;
-  void update_average_number_bitten(core::LocationId location, const int &birthday,
-                                    const int &number_of_times_bitten);
 
 public:
   struct ProgressToClinicalCounter {

@@ -70,6 +70,18 @@ protected:
             mdc_->person_days_by_location_year()[i] = 0;
         }
     }
+
+    void clearPersonIndex() {
+        auto* person_index =
+            Model::get_population()->get_person_index<PersonIndexByLocationStateAgeClass>();
+        for (auto& location : person_index->vPerson()) {
+            for (auto& state : location) {
+                for (auto& age_class : state) {
+                    age_class.clear();
+                }
+            }
+        }
+    }
     
     // Helper method to set up genotypes for testing
     void setupGenotypes() {
@@ -298,6 +310,28 @@ TEST_F(ModelDataCollectorTest, CollectNumberOfBites) {
     // Verify accumulation
     EXPECT_EQ(mdc_->total_number_of_bites_by_location()[location], 100);
     EXPECT_EQ(mdc_->total_number_of_bites_by_location_year()[location], 100);
+}
+
+TEST_F(ModelDataCollectorTest, BitePercentageIncludesRecordedDeaths) {
+    setupInitialState();
+    clearPersonIndex();
+    const int location = 0;
+    mdc_->average_number_biten_by_location_person()[location] = {10.0, 4.0, 3.0, 2.0, 1.0};
+
+    mdc_->calculate_percentage_bites_on_top_20();
+
+    EXPECT_DOUBLE_EQ(mdc_->percentage_bites_on_top_20_by_location()[location], 0.5);
+}
+
+TEST_F(ModelDataCollectorTest, BitePercentageCountsOnePersonForSmallPopulation) {
+    setupInitialState();
+    clearPersonIndex();
+    const int location = 0;
+    mdc_->average_number_biten_by_location_person()[location] = {2.0};
+
+    mdc_->calculate_percentage_bites_on_top_20();
+
+    EXPECT_DOUBLE_EQ(mdc_->percentage_bites_on_top_20_by_location()[location], 1.0);
 }
 
 // Test monthly_update function

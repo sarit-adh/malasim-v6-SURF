@@ -1,45 +1,42 @@
 #ifndef POMS_SRC_EVENTS_POPULATION_INTRODUCETRIPLEMUTANTTODPMEVENT_H
 #define POMS_SRC_EVENTS_POPULATION_INTRODUCETRIPLEMUTANTTODPMEVENT_H
 
-#include <string>
-#include <vector>
 #include <tuple>
+#include <vector>
 
-//#include "Core/ObjectPool.h"
+// #include "Core/ObjectPool.h"
 #include "Events/Event.h"
 
-class IntroduceTrippleMutantToDPMEvent : public WorldEvent {
+class IntroduceTripleMutantToDPMEvent : public WorldEvent {
 public:
-  //disallow copy, assign and move
-  IntroduceTrippleMutantToDPMEvent(const IntroduceTrippleMutantToDPMEvent &) = delete;
-  void operator=(const IntroduceTrippleMutantToDPMEvent &) = delete;
-  IntroduceTrippleMutantToDPMEvent(IntroduceTrippleMutantToDPMEvent &&) = delete;
-  void operator=(IntroduceTrippleMutantToDPMEvent &&) = delete;
+  // disallow copy, assign and move
+  IntroduceTripleMutantToDPMEvent(const IntroduceTripleMutantToDPMEvent &) = delete;
+  void operator=(const IntroduceTripleMutantToDPMEvent &) = delete;
+  IntroduceTripleMutantToDPMEvent(IntroduceTripleMutantToDPMEvent &&) = delete;
+  void operator=(IntroduceTripleMutantToDPMEvent &&) = delete;
 
-//OBJECTPOOL(IntroduceTrippleMutantToDPMEvent)
+  // OBJECTPOOL(IntroduceTripleMutantToDPMEvent)
 
 private:
   int location_;
-    double fraction_;
-    std::vector<std::tuple<int,int,char>> alleles_;
+  double fraction_;
+  std::vector<std::tuple<int, int, char>> alleles_;
 
 public:
-  explicit IntroduceTrippleMutantToDPMEvent(
-  const int& location = -1, const int& execute_at = -1,
-                                        const double &fraction = 0,
-                                        const std::vector<std::tuple<int,int,char>> &allele_map = {});
+  explicit IntroduceTripleMutantToDPMEvent(
+      const int &location = -1,
+      const int &execute_at = -1,
+      const double &fraction = 0,
+      const std::vector<std::tuple<int, int, char>> &alleles = {});
 
   //    ImportationEvent(const ImportationEvent& orig);
-  ~IntroduceTrippleMutantToDPMEvent() override;
+  ~IntroduceTripleMutantToDPMEvent() override;
 
-  const std::string name() const override {
-    return "IntroduceTrippleMutantToDPMEvent";
-  }
+  static constexpr std::string_view EVENT_NAME{"introduce_triple_mutant_to_dpm"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   void do_execute() override;
-
 };
 
-
-#endif //POMS_SRC_EVENTS_POPULATION_INTRODUCETRIPLEMUTANTTODPMEVENT_H
+#endif  // POMS_SRC_EVENTS_POPULATION_INTRODUCETRIPLEMUTANTTODPMEVENT_H

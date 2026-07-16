@@ -187,6 +187,23 @@ TEST_F(PersonBasicTest, BitingRateManagement) {
   EXPECT_DOUBLE_EQ(person_->get_current_relative_biting_rate(), test_rate * 2);
 }
 
+TEST_F(PersonBasicTest, AverageBitesPerDayUsesObservedLifetime) {
+  person_->set_number_of_times_bitten(30);
+
+  person_->set_birthday(80);
+  EXPECT_DOUBLE_EQ(person_->average_bites_per_day(100, 109), 3.0);
+
+  person_->set_birthday(105);
+  EXPECT_DOUBLE_EQ(person_->average_bites_per_day(100, 109), 6.0);
+}
+
+TEST_F(PersonBasicTest, AverageBitesPerDayIsZeroBeforeObservation) {
+  person_->set_number_of_times_bitten(30);
+  person_->set_birthday(110);
+
+  EXPECT_DOUBLE_EQ(person_->average_bites_per_day(100, 109), 0.0);
+}
+
 TEST_F(PersonBasicTest, MovingLevelManagement) {
   // Test moving level setting
   EXPECT_CALL(*mock_population_, notify_change(_, Person::Property::MOVING_LEVEL, _, _)).Times(1);
@@ -208,4 +225,3 @@ TEST_F(PersonBasicTest, RecurrenceStatus) {
   person_->set_recurrence_status(Person::RecurrenceStatus::WITH_SYMPTOM);
   EXPECT_EQ(person_->get_recurrence_status(), Person::RecurrenceStatus::WITH_SYMPTOM);
 }
-

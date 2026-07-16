@@ -1,6 +1,5 @@
 #include "ModifyNestedMFTEvent.h"
 
-#include "Configuration/Config.h"
 #include "Core/Scheduler/Scheduler.h"
 #include "Simulation/Model.h"
 #include "Treatment/Strategies/IStrategy.h"
@@ -8,7 +7,6 @@
 #include "Treatment/Strategies/NestedMFTStrategy.h"
 #include "Treatment/Strategies/PublicPrivateMultiLocationStrategy.h"
 #include "Treatment/Strategies/PublicPrivateStrategy.h"
-#include "Utils/Helpers/StringHelpers.h"
 
 ModifyNestedMFTEvent::ModifyNestedMFTEvent(const int &at_time, const int &strategy_id)
     : strategy_id(strategy_id) {

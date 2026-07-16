@@ -12,6 +12,17 @@
 #include "Simulation/Model.h"
 
 class ChangeCirculationPercentEvent : public WorldEvent {
+public:
+  ChangeCirculationPercentEvent(const ChangeCirculationPercentEvent &) = delete;
+  ChangeCirculationPercentEvent(ChangeCirculationPercentEvent &&) = delete;
+  ChangeCirculationPercentEvent &operator=(const ChangeCirculationPercentEvent &) = delete;
+  ChangeCirculationPercentEvent &operator=(ChangeCirculationPercentEvent &&) = delete;
+  ChangeCirculationPercentEvent(float rate, int start) : rate_(rate) { set_time(start); }
+  ~ChangeCirculationPercentEvent() override = default;
+
+  static constexpr std::string_view EVENT_NAME{"change_circulation_percent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
+
 private:
   float rate_ = 0.0;
 
@@ -20,27 +31,12 @@ private:
     MovementSettings::CirculationInfo circulation_info =
         Model::get_config()->get_movement_settings().get_circulation_info();
     circulation_info.set_circulation_percent(rate_);
-    Model::get_config()->get_movement_settings().set_circulation_info(
-        circulation_info);
+    Model::get_config()->get_movement_settings().set_circulation_info(circulation_info);
 
     // Log on demand
-    spdlog::debug(
-        "Change circulation percent event: {} - {}",
-        Model::get_scheduler()->get_current_date_string(),
-        rate_);
+    spdlog::debug("Change circulation percent event: {} - {}",
+                  Model::get_scheduler()->get_current_date_string(), rate_);
   }
-
-public:
-  inline static const std::string EventName =
-      "change_circulation_percent_event";
-
-  ChangeCirculationPercentEvent(float rate, int start) : rate_(rate) {
-    set_time(start);
-  }
-  ~ChangeCirculationPercentEvent() override = default;
-
-  // Return the name of this event
-  const std::string name() const override { return EventName; }
 };
 
 #endif

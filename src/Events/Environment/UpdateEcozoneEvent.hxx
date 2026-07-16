@@ -27,8 +27,6 @@ private:
   }
 
 public:
-  inline static const std::string EVENT_NAME = "update_ecozone_event";
-
   UpdateEcozoneEvent(const UpdateEcozoneEvent &) = delete;
   UpdateEcozoneEvent(UpdateEcozoneEvent &&) = delete;
   UpdateEcozoneEvent &operator=(const UpdateEcozoneEvent &) = delete;
@@ -37,7 +35,8 @@ public:
 
   ~UpdateEcozoneEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override { return EVENT_NAME; }
+  static constexpr std::string_view EVENT_NAME{"update_ecozone"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 };
 
 #endif

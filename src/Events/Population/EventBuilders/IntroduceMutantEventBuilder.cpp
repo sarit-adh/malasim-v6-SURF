@@ -112,7 +112,8 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_introduce
       }
 
       // Log and add the event to the queue
-      auto event = std::make_unique<IntroduceMutantEvent>(time, unit_id, admin_level_id, fraction, alleles);
+      auto event =
+          std::make_unique<IntroduceMutantEvent>(time, unit_id, admin_level_id, fraction, alleles);
       for (auto &allele : alleles) {
         spdlog::info("Mutation at {}:{} {}", std::get<0>(allele), std::get<1>(allele),
                      std::get<2>(allele));
@@ -127,8 +128,9 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_introduce
   }
 }
 
-std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_introduce_mutant_raster_event(
-    const YAML::Node &node, Config* config) {
+std::vector<std::unique_ptr<WorldEvent>>
+PopulationEventBuilder::build_introduce_mutant_raster_event(const YAML::Node &node,
+                                                            Config* config) {
   try {
     std::vector<std::unique_ptr<WorldEvent>> events;
     for (const auto &entry : node) {
@@ -144,9 +146,8 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_introduce
         if (allele_node["allele"].as<std::string>().size() > 1) {
           spdlog::error("Allele {} should be 1 character", allele_node["allele"].as<std::string>());
         } else {
-          alleles.push_back(std::tuple(allele_node["chromosome"].as<int>(),
-                                       allele_node["locus"].as<int>(),
-                                       allele_node["allele"].as<std::string>().front()));
+          alleles.emplace_back(allele_node["chromosome"].as<int>(), allele_node["locus"].as<int>(),
+                               allele_node["allele"].as<std::string>().front());
         }
       }
       for (auto &allele : alleles) {
@@ -172,7 +173,7 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_introduce
     spdlog::error(
         "Unrecoverable error parsing YAML value in {}"
         " node: {}",
-        IntroduceMutantRasterEvent::EventName, error.msg);
+        IntroduceMutantRasterEvent::EVENT_NAME, error.msg);
     exit(EXIT_FAILURE);
   } catch (std::runtime_error &error) {
     // Runtime errors are most likely to be thrown when reading the ASC file, so

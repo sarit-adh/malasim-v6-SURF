@@ -125,8 +125,8 @@ public:
   [[nodiscard]] core::Age get_age() const { return age_; }
 
   // Negative for everyone in the initial population (see core::BirthDay).
-  [[nodiscard]] core::BirthDay get_birthday() const { return birthday_; }
-  void set_birthday(core::BirthDay birthday) { birthday_ = birthday; }
+  [[nodiscard]] core::SimDay get_birthday() const { return birthday_; }
+  void set_birthday(core::SimDay birthday) { birthday_ = birthday; }
 
   [[nodiscard]] virtual core::SimDay get_latest_update_time() const { return latest_update_time_; }
   virtual void set_latest_update_time(core::SimDay lastest_update_time) {
@@ -271,6 +271,8 @@ public:
 
   [[nodiscard]] double age_in_floating(int simulation_time) const;
 
+  [[nodiscard]] double average_bites_per_day(int start_collect_data_day, int current_time) const;
+
   // Group 1: Clinical Event Scheduling
   // void schedule_clinical_event(ClonalParasitePopulation* parasite, int days_delay);
   void schedule_end_clinical_event(ClonalParasitePopulation* parasite);
@@ -341,13 +343,14 @@ private:
   core::MovingLevel moving_level_{core::K_INVALID_MOVING_LEVEL};
   core::LocationId residence_location_{core::K_INVALID_LOCATION_ID};
 
-  core::BirthDay birthday_{core::K_INVALID_BIRTHDAY};
+  core::SimDay birthday_{core::K_INVALID_SIM_DAY};
   core::SimDay latest_update_time_{core::K_INVALID_SIM_DAY};
+  core::SimDay latest_time_received_public_treatment_{-30};
+
   core::BiteCount number_of_times_bitten_{0};
   core::TripCount number_of_trips_taken_{0};
 
   core::TherapyId last_therapy_id_{0};
-  core::SimDay latest_time_received_public_treatment_{-30};
 
 #ifdef ENABLE_TRAVEL_TRACKING
   core::SimDay day_that_last_trip_was_initiated_{core::K_INVALID_SIM_DAY};

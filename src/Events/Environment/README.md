@@ -1,76 +1,48 @@
-# Events/Environment
+# Environment Events
 
-This module provides event handling functionality for environmental changes in the simulation system. It contains classes for building and executing environment-related events.
+Environment events are configuration-built `WorldEvent` instances that modify environmental
+state while the simulation is running.
 
-## Overview
+## Supported event
 
-The Events/Environment module consists of several components that handle environmental changes during simulation runtime:
+`UpdateEcozoneEvent` changes all seasonality entries using one ecozone identifier to another. Its
+canonical event name is `update_ecozone`; `EnvironmentEventBuilder::build()` dispatches directly
+against `UpdateEcozoneEvent::EVENT_NAME`.
 
-### Components
-
-#### EnvironmentEventBuilder
-A factory class that constructs environment-related events from configuration.
-- Features:
-  - YAML configuration parsing
-  - Event construction from configuration nodes
-- Key Methods:
-  - `build()`: Creates events from YAML configuration
-  - `build_update_ecozone_event()`: Specifically builds ecozone update events
-
-#### UpdateEcozoneEvent
-An event class that handles changes in ecological zones during simulation.
-- Features:
-  - Updates ecozone types from one type to another
-  - Integrates with the simulation's seasonality system
-- Key Components:
-  - Source ecozone type (`from_`)
-  - Target ecozone type (`to_`)
-  - Execution time (`time`)
-- Implementation:
-  - Inherits from base `Event` class
-  - Updates seasonal equations when executed
-  - Logs changes using spdlog
-
-## Usage
-
-### Configuration-based Event Creation
 ```yaml
-# Example YAML configuration
-update_ecozone:
-  from: 1    # Source ecozone type
-  to: 2      # Target ecozone type
-  time: 100  # When to execute the event
+- name: update_ecozone
+  info:
+    - day: 2005/01/01
+      from: 1
+      to: 2
 ```
 
-### Code Example
+`day` is converted to a simulation-day offset from the configured starting date. Both `from` and
+`to` must be non-negative.
+
+## Builder API
+
 ```cpp
-// Using EnvironmentEventBuilder
-YAML::Node config = YAML::LoadFile("config.yaml");
-auto events = EnvironmentEventBuilder::build(config);
+std::vector<std::unique_ptr<WorldEvent>> events =
+    EnvironmentEventBuilder::build(event_node);
 
-// Events will be automatically executed by the simulation
-// at their scheduled times
+for (auto &event : events) {
+  Model::get_scheduler()->schedule_population_event(std::move(event));
+}
 ```
 
-## Dependencies
+The builder returns an empty vector for an unsupported name. During normal configuration loading,
+`PopulationEvents` first tries `PopulationEventBuilder` and then this builder. Scheduled events are
+owned by the scheduler.
 
-- `yaml-cpp`: For configuration parsing
-- `spdlog`: For logging
-- Core simulation components:
-  - `Model`
-  - `Config`
-  - `SeasonalitySettings`
-  - Base `Event` class
+`UpdateEcozoneEvent` follows the shared event-name contract:
 
-## File Structure
+```cpp
+static constexpr std::string_view EVENT_NAME{"update_ecozone"};
+[[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
+```
 
-- `EnvironmentEventBuilder.h/cpp`: Event factory implementation
-- `UpdateEcozoneEvent.hxx`: Ecozone update event definition
-- `README.md`: This documentation file
+## Files
 
-## Notes
-
-- Events are executed automatically by the simulation system
-- Ecozone updates affect the seasonality calculations
-- All changes are logged for monitoring and debugging
-- Configuration-driven approach allows for flexible event scheduling
+- `EnvironmentEventBuilder.h/.cpp`: YAML dispatch, date conversion, and validation.
+- `UpdateEcozoneEvent.hxx`: execution logic and seasonality update.

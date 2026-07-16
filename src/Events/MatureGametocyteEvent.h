@@ -16,17 +16,17 @@ class MatureGametocyteEvent : public PersonEvent {
 public:
   // disallow copy, assign and move
   MatureGametocyteEvent(const MatureGametocyteEvent &) = delete;
-  MatureGametocyteEvent& operator=(const MatureGametocyteEvent &) = delete;
+  MatureGametocyteEvent &operator=(const MatureGametocyteEvent &) = delete;
   MatureGametocyteEvent(MatureGametocyteEvent &&) = delete;
-  MatureGametocyteEvent& operator=(MatureGametocyteEvent &&) = delete;
+  MatureGametocyteEvent &operator=(MatureGametocyteEvent &&) = delete;
   explicit MatureGametocyteEvent(Person* person) : PersonEvent(person) {}
 
   ClonalParasitePopulation* blood_parasite() { return blood_parasite_; }
   void set_blood_parasite(ClonalParasitePopulation* value) { blood_parasite_ = value; }
 
   ~MatureGametocyteEvent() override = default;
-
-  [[nodiscard]] const std::string name() const override { return "MatureGametocyteEvent"; }
+  static constexpr std::string_view EVENT_NAME{"MatureGametocyteEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   ClonalParasitePopulation* blood_parasite_{nullptr};

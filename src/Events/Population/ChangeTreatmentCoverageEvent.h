@@ -18,7 +18,8 @@ public:
 
   ~ChangeTreatmentCoverageEvent() override;
 
-  [[nodiscard]] const std::string name() const override { return "ChangeTreatmentCoverageEvent"; }
+  static constexpr std::string_view EVENT_NAME{"change_treatment_coverage"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   void do_execute() override;

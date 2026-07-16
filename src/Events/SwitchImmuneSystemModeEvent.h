@@ -15,7 +15,8 @@ public:
   explicit SwitchImmuneSystemModeEvent(Person* person);
   ~SwitchImmuneSystemModeEvent() override;
 
-  [[nodiscard]] const std::string name() const override { return "SwitchImmuneSystemModeEvent"; }
+  static constexpr std::string_view EVENT_NAME{"SwitchImmuneSystemModeEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 protected:
   void do_execute() override;

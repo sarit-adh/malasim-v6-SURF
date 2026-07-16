@@ -7,15 +7,12 @@
 #include "Events/ReceiveMDATherapyEvent.h"
 #include "Population/Population.h"
 #include "Simulation/Model.h"
-#include "Utils/Helpers/StringHelpers.h"
 #include "Utils/Index/PersonIndexByLocationStateAgeClass.h"
 #include "Utils/Random.h"
-#include "date/date.h"
 
-SingleRoundMDAEvent::SingleRoundMDAEvent(const int& at_time) {
-    set_time(at_time);
-    days_to_complete_all_treatments = 14;
-    fraction_population_targeted = std::vector<double>();
+SingleRoundMDAEvent::SingleRoundMDAEvent(const int &at_time) {
+  set_time(at_time);
+  fraction_population_targeted_ = std::vector<double>();
 }
 
 void SingleRoundMDAEvent::do_execute() {
@@ -36,11 +33,11 @@ void SingleRoundMDAEvent::do_execute() {
 
     const auto number_indidividuals_in_location = all_persons_in_location.size();
     auto number_of_individuals_will_receive_mda = Model::get_random()->random_poisson(
-        fraction_population_targeted[loc] * number_indidividuals_in_location);
+        fraction_population_targeted_[loc] * static_cast<double>(number_indidividuals_in_location));
 
     number_of_individuals_will_receive_mda =
         number_of_individuals_will_receive_mda > number_indidividuals_in_location
-            ? number_indidividuals_in_location
+            ? static_cast<int>(number_indidividuals_in_location)
             : number_of_individuals_will_receive_mda;
     // shuffle app_persons_in_location index for sampling without replacement
     Model::get_random()->shuffle(all_persons_in_location);
@@ -57,7 +54,8 @@ void SingleRoundMDAEvent::do_execute() {
                     .get();
         // schedule received therapy in within days_to_complete_all_treatments
         int days_to_receive_mda_therapy =
-            Model::get_random()->random_uniform(days_to_complete_all_treatments) + 1;
+            static_cast<int>(Model::get_random()->random_uniform(days_to_complete_all_treatments_))
+            + 1;
 
         person->schedule_receive_mda_therapy_event(therapy, days_to_receive_mda_therapy);
       }

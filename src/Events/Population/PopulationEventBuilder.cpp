@@ -7,6 +7,8 @@
  */
 #include "PopulationEventBuilder.h"
 
+#include <fmt/format.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
@@ -23,6 +25,7 @@
 #include "ChangeWithinHostInducedFreeRecombinationEvent.h"
 #include "Configuration/Config.h"
 #include "DistrictImportationDailyEvent.h"
+#include "Events/Population/IntroduceParasitesPeriodicallyEventV2.h"
 #include "ImportationEvent.h"
 #include "ImportationPeriodicallyEvent.h"
 #include "ImportationPeriodicallyRandomEvent.h"
@@ -211,7 +214,7 @@ PopulationEventBuilder::build_change_treatment_strategy_event(const YAML::Node &
       exit(-1);
     }
 
-    auto event = std::make_unique<ChangeTreatmentStrategyEvent>(strategy_id,time);
+    auto event = std::make_unique<ChangeTreatmentStrategyEvent>(strategy_id, time);
     events.push_back(std::move(event));
   }
 
@@ -498,7 +501,7 @@ PopulationEventBuilder::build_introduce_triple_mutant_to_dpm_parasite_events(con
                      std::get<2>(allele));
       }
       auto event =
-          std::make_unique<IntroduceTrippleMutantToDPMEvent>(location, time, fraction, alleles);
+          std::make_unique<IntroduceTripleMutantToDPMEvent>(location, time, fraction, alleles);
       events.push_back(std::move(event));
     }
   }
@@ -558,7 +561,7 @@ PopulationEventBuilder::build_rotate_treatment_strategy_event(const YAML::Node &
     spdlog::error(
         "Unrecoverable error parsing YAML value in "
         "{} node: {}",
-        RotateStrategyEvent::EventName, error.msg);
+        RotateStrategyEvent::EVENT_NAME, error.msg);
     exit(EXIT_FAILURE);
   }
 }
@@ -569,7 +572,7 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_annual_be
     const YAML::Node &node, Config* config) {
   try {
     // Check the node size
-    verify_single_node(node, AnnualBetaUpdateEvent::EventName);
+    verify_single_node(node, AnnualBetaUpdateEvent::EVENT_NAME);
 
     // Build the event
     auto start_date = node[0]["date"].as<date::year_month_day>();
@@ -589,7 +592,7 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_annual_be
     spdlog::error(
         "Unrecoverable error parsing YAML value in "
         "{} node: {}",
-        AnnualBetaUpdateEvent::EventName, error.msg);
+        AnnualBetaUpdateEvent::EVENT_NAME, error.msg);
     exit(EXIT_FAILURE);
   }
 }
@@ -601,7 +604,7 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_annual_co
     const YAML::Node &node, Config* config) {
   try {
     // Check the node size
-    verify_single_node(node, AnnualCoverageUpdateEvent::EventName);
+    verify_single_node(node, AnnualCoverageUpdateEvent::EVENT_NAME);
 
     // Build the event
     auto start_date = node[0]["date"].as<date::year_month_day>();
@@ -621,7 +624,7 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_annual_co
     spdlog::error(
         "Unrecoverable error parsing YAML value in "
         "{} node: {}",
-        AnnualCoverageUpdateEvent::EventName, error.msg);
+        AnnualCoverageUpdateEvent::EVENT_NAME, error.msg);
     exit(EXIT_FAILURE);
   }
 }
@@ -644,14 +647,14 @@ PopulationEventBuilder::build_change_circulation_percent_event(const YAML::Node 
         spdlog::error(
             "The daily population circulation percentage must be "
             "greater than zero for {}",
-            ChangeCirculationPercentEvent::EventName);
+            ChangeCirculationPercentEvent::EVENT_NAME);
         throw std::invalid_argument("Population circulation percentage must be greater than zero");
       }
       if (rate > 1.0) {
         spdlog::error(
             "The daily population circulation percentage must be "
             "less than one (i.e., 100%) for ",
-            ChangeCirculationPercentEvent::EventName);
+            ChangeCirculationPercentEvent::EVENT_NAME);
         throw std::invalid_argument("Population circulation percentage must be less than one");
       }
 
@@ -666,7 +669,7 @@ PopulationEventBuilder::build_change_circulation_percent_event(const YAML::Node 
     spdlog::error(
         "Unrecoverable error parsing YAML value in "
         "{} node: {}",
-        ChangeCirculationPercentEvent::EventName, error.msg);
+        ChangeCirculationPercentEvent::EVENT_NAME, error.msg);
     exit(EXIT_FAILURE);
   }
 }
@@ -692,7 +695,7 @@ PopulationEventBuilder::build_importation_periodically_random_event(const YAML::
       // Check to make sure the date is valid
       if (start_date.day() != date::day{1}) {
         spdlog::error("The event must start on the first of the month for {} ",
-                      ImportationPeriodicallyRandomEvent::EventName);
+                      ImportationPeriodicallyRandomEvent::EVENT_NAME);
         throw std::invalid_argument("Event must start on the first of the month");
       }
 
@@ -701,14 +704,14 @@ PopulationEventBuilder::build_importation_periodically_random_event(const YAML::
         spdlog::error(
             "Invalid genotype id supplied for {} genotype id cannot be less "
             "than zero",
-            ImportationPeriodicallyRandomEvent::EventName);
+            ImportationPeriodicallyRandomEvent::EVENT_NAME);
         throw std::invalid_argument("Genotype id cannot be less than zero");
       }
       if (genotype_id >= Model::get_genotype_db()->size()) {
         spdlog::error(
             "Invalid genotype id supplied for {} genotype id cannot be greater "
             "than genotype_db size",
-            ImportationPeriodicallyRandomEvent::EventName);
+            ImportationPeriodicallyRandomEvent::EVENT_NAME);
         throw std::invalid_argument("Genotype id cannot be greater than genotype_db size");
       }
 
@@ -743,7 +746,7 @@ PopulationEventBuilder::build_importation_periodically_random_event(const YAML::
     spdlog::error(
         "Unrecoverable error parsing YAML value in "
         "{} node: {}",
-        ImportationPeriodicallyRandomEvent::EventName, error.msg);
+        ImportationPeriodicallyRandomEvent::EVENT_NAME, error.msg);
     exit(EXIT_FAILURE);
   }
 }
@@ -768,8 +771,8 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build_update_be
             "The file indicated, {}, cannot be found for "
             "{} event. Please check the file path.",
             filename, UpdateBetaRasterEvent::EVENT_NAME);
-        throw std::invalid_argument("File for " + UpdateBetaRasterEvent::EVENT_NAME
-                                    + " does not appear to exist.");
+        throw std::invalid_argument(fmt::format("File for '{}' does not appear to exist.",
+                                                UpdateBetaRasterEvent::EVENT_NAME));
       }
       file.close();
 
@@ -843,89 +846,96 @@ std::vector<std::unique_ptr<WorldEvent>> PopulationEventBuilder::build(const YAM
   const auto name = node["name"].as<std::string>();
   spdlog::info("Building events of type: {}", name);
 
-  if (name == "introduce_parasites") {
+  if (name == ImportationEvent::EVENT_NAME) {
     events = build_introduce_parasite_events(node["info"], config);
   }
-  if (name == "introduce_parasites_periodically") {
+  if (name == ImportationPeriodicallyEvent::EVENT_NAME) {
     events = build_introduce_parasites_periodically_events(node["info"], config);
   }
-  if (name == "introduce_parasites_periodically_v2") {
+  if (name == IntroduceParasitesPeriodicallyEventV2::EVENT_NAME) {
     events = build_introduce_parasites_periodically_events_v2(node["info"], config);
   }
-  if (name == "change_treatment_coverage") {
+  if (name == ChangeTreatmentCoverageEvent::EVENT_NAME) {
     events = build_change_treatment_coverage_event(node["info"], config);
   }
-  if (name == "change_treatment_strategy") {
+  if (name == ChangeTreatmentStrategyEvent::EVENT_NAME) {
     events = build_change_treatment_strategy_event(node["info"], config);
   }
-  if (name == "single_round_MDA") { events = build_single_round_mda_event(node["info"], config); }
-  if (name == "modify_nested_mft_strategy") {
+  if (name == SingleRoundMDAEvent::EVENT_NAME) {
+    events = build_single_round_mda_event(node["info"], config);
+  }
+  if (name == ModifyNestedMFTEvent::EVENT_NAME) {
     events = build_modify_nested_mft_strategy_event(node["info"], config);
   }
-  if (name == "introduce_plas2_parasites") {
+  if (name == IntroducePlas2CopyParasiteEvent::EVENT_NAME) {
     events = build_introduce_plas2_parasite_events(node["info"], config);
   }
-  if (name == "introduce_amodiaquine_mutant_parasites") {
+  if (name == IntroduceAmodiaquineMutantEvent::EVENT_NAME) {
     events = build_introduce_amodiaquine_mutant_parasite_events(node["info"], config);
   }
-  if (name == "introduce_lumefantrine_mutant_parasites") {
+  if (name == IntroduceLumefantrineMutantEvent::EVENT_NAME) {
     events = build_introduce_lumefantrine_mutant_parasite_events(node["info"], config);
   }
-  if (name == "introduce_580Y_parasites") {
+  if (name == Introduce580YMutantEvent::EVENT_NAME) {
     events = build_introduce_580Y_mutant_events(node["info"], config);
   }
-  if (name == "turn_on_mutation") { events = build_turn_on_mutation_event(node["info"], config); }
-  if (name == "turn_off_mutation") { events = build_turn_off_mutation_event(node["info"], config); }
-  if (name == "change_within_host_induced_free_recombination") {
+  if (name == TurnOnMutationEvent::EVENT_NAME) {
+    events = build_turn_on_mutation_event(node["info"], config);
+  }
+  if (name == TurnOffMutationEvent::EVENT_NAME) {
+    events = build_turn_off_mutation_event(node["info"], config);
+  }
+  if (name == ChangeWithinHostInducedFreeRecombinationEvent::EVENT_NAME) {
     events = build_change_within_host_induced_free_recombination_events(node["info"], config);
   }
-  if (name == "change_mutation_probability_per_locus") {
+  if (name == ChangeMutationProbabilityPerLocusEvent::EVENT_NAME) {
     events = build_change_mutation_probability_per_locus_events(node["info"], config);
   }
-  if (name == "change_interrupted_feeding_rate") {
+  if (name == ChangeInterruptedFeedingRateEvent::EVENT_NAME) {
     events = build_change_interrupted_feeding_rate_event(node["info"], config);
   }
-  if (name == "introduce_triple_mutant_to_dpm_parasites") {
+  if (name == IntroduceTripleMutantToDPMEvent::EVENT_NAME) {
     events = build_introduce_triple_mutant_to_dpm_parasite_events(node["info"], config);
   }
 
-  if (name == AnnualBetaUpdateEvent::EventName) {
+  if (name == AnnualBetaUpdateEvent::EVENT_NAME) {
     events = build_annual_beta_update_event(node["info"], config);
   }
-  if (name == AnnualCoverageUpdateEvent::EventName) {
+  if (name == AnnualCoverageUpdateEvent::EVENT_NAME) {
     events = build_annual_coverage_update_event(node["info"], config);
   }
-  if (name == ChangeCirculationPercentEvent::EventName) {
+  if (name == ChangeCirculationPercentEvent::EVENT_NAME) {
     events = build_change_circulation_percent_event(node["info"], config);
   }
-  if (name == ImportationPeriodicallyRandomEvent::EventName) {
+  if (name == ImportationPeriodicallyRandomEvent::EVENT_NAME) {
     events = build_importation_periodically_random_event(node["info"], config);
   }
   if (name == IntroduceMutantEvent::EVENT_NAME) {
     auto admin_level_name = node["admin_level"].as<std::string>();
     events = build_introduce_mutant_event(node["info"], config, admin_level_name);
   }
-  if (name == IntroduceMutantRasterEvent::EventName) {
+  if (name == IntroduceMutantRasterEvent::EVENT_NAME) {
     events = build_introduce_mutant_raster_event(node["info"], config);
   }
   if (name == UpdateBetaRasterEvent::EVENT_NAME) {
     events = build_update_beta_raster_event(node["info"], config);
   }
-  if (name == RotateStrategyEvent::EventName) {
+  if (name == RotateStrategyEvent::EVENT_NAME) {
     events = build_rotate_treatment_strategy_event(node["info"], config);
   }
-  if (name == DistrictImportationDailyEvent::EventName) {
+  if (name == DistrictImportationDailyEvent::EVENT_NAME) {
     events = build_import_district_mutant_daily_events(node["info"], config);
   }
-  if (name == "change_mutation_mask") {
+  if (name == ChangeMutationMaskEvent::EVENT_NAME) {
     events = build_change_mutation_mask_events(node["info"], config);
   }
   return events;
 }
 
-void PopulationEventBuilder::verify_single_node(const YAML::Node &node, const std::string &name) {
-  if (node.size() > 1) {
-    spdlog::error("More than one sub node found for " + name + " in the configuration file");
+void PopulationEventBuilder::verify_single_node(const YAML::Node &node,
+                                                const std::string_view &name) {
+  if (node.size() != 1) {
+    throw std::invalid_argument(
+        fmt::format("Expected exactly one sub-node for '{}', but found {}", name, node.size()));
   }
 }
-

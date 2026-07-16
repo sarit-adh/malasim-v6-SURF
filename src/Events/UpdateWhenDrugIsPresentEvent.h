@@ -4,7 +4,6 @@
 #include "Event.h"
 // #include "Core/ObjectPool.h"
 // #include "Core/PropertyMacro.h"
-#include <string>
 
 class ClonalParasitePopulation;
 
@@ -16,18 +15,19 @@ class UpdateWhenDrugIsPresentEvent : public PersonEvent {
   // OBJECTPOOL(UpdateWhenDrugIsPresentEvent)
 public:
   // Disallow copy
-  UpdateWhenDrugIsPresentEvent(const UpdateWhenDrugIsPresentEvent&) = delete;
-  UpdateWhenDrugIsPresentEvent& operator=(const UpdateWhenDrugIsPresentEvent&) = delete;
+  UpdateWhenDrugIsPresentEvent(const UpdateWhenDrugIsPresentEvent &) = delete;
+  UpdateWhenDrugIsPresentEvent &operator=(const UpdateWhenDrugIsPresentEvent &) = delete;
 
   // Disallow move
-  UpdateWhenDrugIsPresentEvent(UpdateWhenDrugIsPresentEvent&&) = delete;
-  UpdateWhenDrugIsPresentEvent& operator=(UpdateWhenDrugIsPresentEvent&&) = delete;
+  UpdateWhenDrugIsPresentEvent(UpdateWhenDrugIsPresentEvent &&) = delete;
+  UpdateWhenDrugIsPresentEvent &operator=(UpdateWhenDrugIsPresentEvent &&) = delete;
 
   explicit UpdateWhenDrugIsPresentEvent(Person* person) : PersonEvent(person) {}
 
   ~UpdateWhenDrugIsPresentEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override { return "UpdateByHavingDrugEvent"; }
+  static constexpr std::string_view EVENT_NAME{"UpdateByHavingDrugEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
   ClonalParasitePopulation* clinical_caused_parasite() { return clinical_caused_parasite_; }
   void set_clinical_caused_parasite(ClonalParasitePopulation* value) {

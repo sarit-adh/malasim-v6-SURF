@@ -1,97 +1,69 @@
 # Events
 
-This module provides the core event system and individual event implementations for the simulation. These events handle various aspects of disease progression, treatment, and individual behavior in the simulation.
+This directory contains the event hierarchy and the person- and world-level events used by the
+simulation.
 
-## Directory Structure
+## Event model
 
-### Core Components
-- `Event.h/cpp`: Base class for all events in the system
-  - Provides common functionality for event scheduling and execution
-  - Defines the interface that all events must implement
+`Event` implements the non-virtual public interface: the scheduler calls `execute()`, which checks
+`is_executable()` and then invokes the derived class's `do_execute()` hook. Every event also stores
+its simulation day in `time_` through `get_time()` and `set_time()`.
 
-### Subdirectories
-- `Population/`: Population-level events (e.g., MDA, mutation events)
-- `Environment/`: Environmental events
-- `Trials/`: Clinical trial related events
+Derived events use one of two marker base classes:
 
-## Event Categories
+- `PersonEvent` stores a non-owning `Person*` and is scheduled on that person's event manager.
+- `WorldEvent` is scheduled by the global `Scheduler` and can modify population or environment
+  state.
 
-### Disease Progression Events
-- `ProgressToClinicalEvent.h/cpp`: Handles progression to clinical symptoms
-- `MatureGametocyteEvent.h/cpp`: Manages gametocyte maturation process
-- `MoveParasiteToBloodEvent.h/cpp`: Controls parasite movement to bloodstream
-- `EndClinicalEvent.h/cpp`: Manages the end of clinical symptoms
-
-### Treatment Events
-- `ReceiveTherapyEvent.h/cpp`: Handles individual treatment administration
-- `ReceiveMDATherapyEvent.h/cpp`: Manages Mass Drug Administration treatment
-- `TestTreatmentFailureEvent.h/cpp`: Tests for treatment failure
-- `ReportTreatmentFailureDeathEvent.h/cpp`: Reports deaths due to treatment failure
-- `UpdateWhenDrugIsPresentEvent.h/cpp`: Drug presence monitoring
-
-### Movement Events
-- `CirculateToTargetLocationNextDayEvent.h/cpp`: Manages individual movement between locations
-- `ReturnToResidenceEvent.h/cpp`: Handles return to residence location
-
-### Lifecycle Events
-- `BirthdayEvent.h/cpp`: Manages individual aging
-- `SwitchImmuneSystemModeEvent.h/cpp`: Switches from infant to non-infant immunity
-
-### Monitoring Events
-- `RaptEvent.h/cpp`: Rapid Assessment of Parasite Treatment event
-
-## Implementation Guidelines
-
-1. **Event Class Structure**
-   - All events inherit from `WorldEvent` or `PersonEvent` base classes
-   - Follow the standardized format for disallowing copy and move operations
-   - Use `[[nodiscard]]` for getters
-   - Make member variables private with appropriate getters/setters
-
-2. **Documentation**
-   - Use Doxygen-style comments for public interfaces
-   - Document parameters and return values
-   - Include brief descriptions of event purpose
-
-3. **Memory Management**
-   - Use RAII principles
-   - Properly handle resource cleanup
-   - Use smart pointers where appropriate
-
-4. **Error Handling**
-   - Validate input parameters
-   - Use appropriate error reporting mechanisms
-   - Handle edge cases gracefully
-
-## Dependencies
-
-- Core simulation components:
-  - `Model`
-  - `Person`
-  - `Population`
-  - `DrugDatabase`
-- Utility classes:
-  - `Config`
-  - `Random`
-  - `Scheduler`
-
-## Usage Example
+Events are non-copyable and non-movable because ownership is transferred with
+`std::unique_ptr`. A concrete event provides a stable, allocation-free name:
 
 ```cpp
-// Creating and scheduling a therapy event
-auto therapy_event = new ReceiveTherapyEvent(person, therapy_id);
-scheduler->schedule_event(therapy_event);
-
-// Creating a clinical progression event
-auto clinical_event = new ProgressToClinicalEvent(person);
-scheduler->schedule_event(clinical_event);
+static constexpr std::string_view EVENT_NAME{"my_event"};
+[[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 ```
 
-## Notes
+Configuration builders also use `EVENT_NAME` as the YAML dispatch key, so a configurable event's
+constant must match its `name:` value.
 
-- Events are executed in chronological order
-- Events may create other events during execution
-- All events must be memory managed by the scheduler
-- Follow C++ guidelines for class design and implementation
-- Use const-correctness throughout
-- Maintain thread safety where applicable
+## Scheduling
+
+World events are owned by the scheduler:
+
+```cpp
+auto event = std::make_unique<AnnualBetaUpdateEvent>(0.05F, start_day);
+Model::get_scheduler()->schedule_population_event(std::move(event));
+```
+
+Person events are owned by the person's event manager:
+
+```cpp
+auto event = std::make_unique<ProgressToClinicalEvent>(person);
+event->set_time(execute_at);
+person->schedule_basic_event(std::move(event));
+```
+
+Do not allocate scheduled events with raw `new` or retain an owning pointer after scheduling.
+Events that reschedule themselves must create a new `std::unique_ptr` instance.
+
+## Contents
+
+- Disease progression: `ProgressToClinicalEvent`, `MatureGametocyteEvent`,
+  `MoveParasiteToBloodEvent`, and `EndClinicalEvent`.
+- Treatment: `ReceiveTherapyEvent`, `ReceiveMDATherapyEvent`,
+  `TestTreatmentFailureEvent`, `ReportTreatmentFailureDeathEvent`, and
+  `UpdateWhenDrugIsPresentEvent`.
+- Movement and lifecycle: `CirculateToTargetLocationNextDayEvent`,
+  `ReturnToResidenceEvent`, `BirthdayEvent`, and `SwitchImmuneSystemModeEvent`.
+- `Population/`: configurable population-wide interventions and importation events.
+- `Environment/`: configurable environment events.
+- `Trials/`: the clinical-study world event.
+
+## Implementation checklist
+
+- Override private `do_execute()` with the event action.
+- Delete copy and move construction/assignment.
+- Declare `EVENT_NAME` and return it from `name() const noexcept` as `std::string_view`.
+- Use `[[nodiscard]]` on value-returning accessors that should not be ignored.
+- Treat `Person*` and other model pointers as non-owning; use RAII for owned resources.
+- Validate configuration in the builder before returning the event.

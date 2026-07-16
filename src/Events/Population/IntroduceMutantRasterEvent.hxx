@@ -16,9 +16,24 @@
 
 class IntroduceMutantRasterEvent : public IntroduceMutantEventBase {
 public:
+  IntroduceMutantRasterEvent &operator=(const IntroduceMutantRasterEvent &) = delete;
+  IntroduceMutantRasterEvent &operator=(IntroduceMutantRasterEvent &&) = delete;
   // disallow copy and move
   IntroduceMutantRasterEvent(const IntroduceMutantRasterEvent &) = delete;
   IntroduceMutantRasterEvent(IntroduceMutantRasterEvent &&) = delete;
+
+  IntroduceMutantRasterEvent(const int &time,
+                             std::vector<int> locations,
+                             const double &fraction,
+                             const std::vector<std::tuple<int, int, char>> &alleles)
+      : IntroduceMutantEventBase(fraction, alleles), locations_(std::move(locations)) {
+    this->set_time(time);
+  }
+
+  ~IntroduceMutantRasterEvent() override = default;
+
+  static constexpr std::string_view EVENT_NAME{"introduce_mutant_raster"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   std::vector<int> locations_;
@@ -27,34 +42,17 @@ private:
     // Use the locations to calculate the target fraction of mutations and
     // perform them
     auto target_fraction = calculate(locations_);
-    auto count =
-        (target_fraction > 0) ? mutate(locations_, target_fraction) : 0;
+    auto count = (target_fraction > 0) ? mutate(locations_, target_fraction) : 0;
 
     // Log the event's operation
-    for (auto allele : alleles_) {
+    for (auto allele : alleles) {
       spdlog::info(
           "Time: {} - Introduce mutant raster event chromosome {} locus {} "
           "allele {} fraction: {} count: {}",
-          Model::get_scheduler()->current_time(), std::get<0>(allele),
-          std::get<1>(allele), std::get<2>(allele), target_fraction, count);
+          Model::get_scheduler()->current_time(), std::get<0>(allele), std::get<1>(allele),
+          std::get<2>(allele), target_fraction, count);
     }
   }
-
-public:
-  inline static const std::string EventName = "introduce_mutant_raster_event";
-
-  IntroduceMutantRasterEvent(
-      const int &time, std::vector<int> locations, const double &fraction,
-      const std::vector<std::tuple<int, int, char>> &alleles)
-      : IntroduceMutantEventBase(fraction, alleles),
-        locations_(std::move(locations)) {
-    this->set_time(time);
-  }
-
-  ~IntroduceMutantRasterEvent() override = default;
-
-  // Return the name of this event
-  const std::string name() const override { return EventName; }
 };
 
 #endif

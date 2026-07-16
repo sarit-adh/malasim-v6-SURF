@@ -353,6 +353,10 @@ void Population::finalize_today_infections(const PersonPtrVector &infected_peopl
 }
 
 void Population::generate_individual(int location, int age_class) {
+  auto* config = Model::get_config();
+  auto* random = Model::get_random();
+  auto* scheduler = Model::get_scheduler();
+
   auto person = std::make_unique<Person>();
   person->initialize();
 
@@ -360,16 +364,12 @@ void Population::generate_individual(int location, int age_class) {
   person->set_residence_location(location);
   person->set_host_state(Person::SUSCEPTIBLE);
 
+  auto initial_age_structure = config->get_population_demographic().get_initial_age_structure();
   // Set the age of the individual, which also sets the age class. Note that we
   // are defining the types to conform to the signature of random_uniform<int>
-  uint age_from = (age_class == 0) ? 0
-                                   : Model::get_config()
-                                         ->get_population_demographic()
-                                         .get_initial_age_structure()[age_class - 1];
-  uint age_to =
-      Model::get_config()->get_population_demographic().get_initial_age_structure()[age_class];
-  person->set_age(static_cast<int>(Model::get_random()->random_uniform<int>(
-      static_cast<int>(age_from), static_cast<int>(age_to) + 1)));
+  const int age_from = (age_class == 0) ? 0 : initial_age_structure[age_class - 1];
+  const int age_to = initial_age_structure[age_class];
+  person->set_age(random->random_uniform<int>(age_from, age_to + 1));  // Upper bound is exclusive.
 
   auto days_to_next_birthday =
       static_cast<int>(Model::get_random()->random_uniform((Constants::DAYS_IN_YEAR))) + 1;
@@ -402,20 +402,19 @@ void Population::generate_individual(int location, int age_class) {
                                                      + (Constants::DAYS_IN_YEAR / 2));
   }
 
-  auto immune_value = Model::get_random()->random_beta(
-      Model::get_config()->get_immune_system_parameters().alpha_immune,
-      Model::get_config()->get_immune_system_parameters().beta_immune);
+  auto immune_system_parameters = Model::get_config()->get_immune_system_parameters();
+  auto immune_value = random->random_beta(immune_system_parameters.alpha_immune,
+                                          immune_system_parameters.beta_immune);
   person->get_immune_system()->set_latest_immune_value(immune_value);
   person->get_immune_system()->set_increase(false);
 
-  person->set_innate_relative_biting_rate(
-      Person::draw_random_relative_biting_rate(Model::get_random(), Model::get_config()));
+  person->set_innate_relative_biting_rate(Person::draw_random_relative_biting_rate(random, config));
   person->update_relative_biting_rate();
 
   // Cache the moving level to avoid repeated lookups
-  auto &movement_settings = Model::get_config()->get_movement_settings();
+  auto &movement_settings = config->get_movement_settings();
   person->set_moving_level(
-      movement_settings.get_moving_level_generator().draw_random_level(Model::get_random()));
+      movement_settings.get_moving_level_generator().draw_random_level(random));
 
   person->set_latest_update_time(0);
 

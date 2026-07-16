@@ -28,8 +28,8 @@ public:
   explicit ProgressToClinicalEvent(Person* person) : PersonEvent(person) {}
 
   ~ProgressToClinicalEvent() override = default;
-
-  [[nodiscard]] const std::string name() const override { return "ProgressToClinicalEvent"; }
+  static constexpr std::string_view EVENT_NAME{"ProgressToClinicalEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
   ClonalParasitePopulation* clinical_caused_parasite() { return clinical_caused_parasite_; }
   void set_clinical_caused_parasite(ClonalParasitePopulation* value) {

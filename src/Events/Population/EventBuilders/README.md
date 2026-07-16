@@ -1,93 +1,51 @@
-# Event Builders
+# Mutant Event Builders
 
-This module provides builder classes for constructing complex population-level events in the malaria simulation.
+`IntroduceMutantEventBuilder.cpp` contains the two specialized
+`PopulationEventBuilder` implementations that introduce selected alleles by administrative unit or
+binary raster. It does not define a separate stateful builder class.
 
-## Overview
+## Administrative-unit event
 
-The Event Builders module provides:
-- Factory methods for event creation
-- Event configuration builders
-- Parameter validation
-- Event composition
-- Complex event construction
+The `introduce_mutant_event` form requires a top-level `admin_level` and one or more entries with
+`day`, `unit_id`, `fraction`, and `alleles`:
 
-## Components
-
-### Mutant Event Builder
-- `IntroduceMutantEventBuilder`: Constructs mutation events
-  - Parasite mutation configuration
-  - Location-specific settings
-  - Timing parameters
-  - Population targeting
-  - Resistance characteristics
-
-## Key Features
-
-### Event Construction
-- Parameter validation
-- Default value handling
-- Configuration checking
-- Error detection
-- Event composition
-
-### Mutation Events
-- Parasite mutation events
-- Resistance development
-- Location-based mutations
-- Timed introductions
-- Population effects
-
-## Implementation
-
-### Builder Pattern
-```cpp
-class IntroduceMutantEventBuilder {
-    // Configuration
-    void set_mutation_type();
-    void set_location();
-    void set_timing();
-    
-    // Validation
-    bool validate_parameters();
-    
-    // Construction
-    Event* build();
-};
+```yaml
+- name: introduce_mutant_event
+  admin_level: district
+  info:
+    - day: 2005/01/01
+      unit_id: 4
+      fraction: 0.20
+      alleles:
+        - chromosome: 13
+          locus: 11
+          allele: Y
 ```
 
-## Usage
+The builder resolves the configured administrative level through `SpatialData`, checks the unit
+identifier, converts the date to simulation time, and returns an `IntroduceMutantEvent`.
 
-```cpp
-// Create builder
-auto builder = new IntroduceMutantEventBuilder();
+## Raster event
 
-// Configure event
-builder->set_mutation_type(mutation_type);
-builder->set_location(location);
-builder->set_timing(start_time);
+The `introduce_mutant_raster` form selects locations from an ESRI ASCII raster:
 
-// Build event
-auto event = builder->build();
+```yaml
+- name: introduce_mutant_raster
+  info:
+    - date: 2005/01/01
+      raster: mutation_targets.asc
+      fraction: 0.20
+      alleles:
+        - chromosome: 13
+          locus: 11
+          allele: Y
 ```
 
-## Dependencies
+Valid raster cells must contain only `0` or `1`; nodata cells are ignored. The number of mapped
+cells must match the configured location count, and the fraction must be greater than zero.
 
-- Core components:
-  - `Event`
-  - `Model`
-  - `Population`
-- Event types:
-  - Mutation events
-  - Population events
-  - Time-based events
+## Ownership and errors
 
-## Notes
-
-- Validate all parameters
-- Handle edge cases
-- Check configurations
-- Maintain consistency
-- Document requirements
-- Test thoroughly
-- Consider performance
-- Handle errors appropriately 
+Both functions return `std::vector<std::unique_ptr<WorldEvent>>`. Callers transfer those pointers
+to the scheduler. YAML conversion failures and invalid spatial input are logged; invalid unit,
+allele, fraction, or raster data are rejected before scheduling.

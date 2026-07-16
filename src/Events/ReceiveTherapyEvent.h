@@ -16,13 +16,14 @@ class ReceiveTherapyEvent : public PersonEvent {
 public:
   // disallow copy and assign and move
   ReceiveTherapyEvent(const ReceiveTherapyEvent &) = delete;
-  ReceiveTherapyEvent& operator=(const ReceiveTherapyEvent &) = delete;
+  ReceiveTherapyEvent &operator=(const ReceiveTherapyEvent &) = delete;
   ReceiveTherapyEvent(ReceiveTherapyEvent &&) = delete;
-  ReceiveTherapyEvent& operator=(ReceiveTherapyEvent &&) = delete;
+  ReceiveTherapyEvent &operator=(ReceiveTherapyEvent &&) = delete;
   explicit ReceiveTherapyEvent(Person* person) : PersonEvent(person) {}
   ~ReceiveTherapyEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override { return "ReceiveTherapyEvent"; }
+  static constexpr std::string_view EVENT_NAME{"ReceiveTherapyEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
   Therapy* received_therapy() { return received_therapy_; }
   void set_received_therapy(Therapy* value) { received_therapy_ = value; }

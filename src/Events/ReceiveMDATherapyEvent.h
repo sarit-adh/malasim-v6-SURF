@@ -1,9 +1,7 @@
 #ifndef RECEIVEMDADRUGEVENT_H
 #define RECEIVEMDADRUGEVENT_H
 
-#include <string>
-
-//#include "Core/PropertyMacro.h"
+// #include "Core/PropertyMacro.h"
 #include "Event.h"
 
 class Scheduler;
@@ -14,27 +12,27 @@ class Therapy;
 
 class ReceiveMDATherapyEvent : public PersonEvent {
 public:
-  //disable copy and move
-  ReceiveMDATherapyEvent(const ReceiveMDATherapyEvent&) = delete;
-  ReceiveMDATherapyEvent(ReceiveMDATherapyEvent&&) = delete;
-//  DELETE_COPY_AND_MOVE(ReceiveMDATherapyEvent)
+  ReceiveMDATherapyEvent &operator=(const ReceiveMDATherapyEvent &) = delete;
+  ReceiveMDATherapyEvent &operator=(ReceiveMDATherapyEvent &&) = delete;
+  // disable copy and move
+  ReceiveMDATherapyEvent(const ReceiveMDATherapyEvent &) = delete;
+  ReceiveMDATherapyEvent(ReceiveMDATherapyEvent &&) = delete;
+  //  DELETE_COPY_AND_MOVE(ReceiveMDATherapyEvent)
 
-//  POINTER_PROPERTY(Therapy, received_therapy)
-private:
-  Therapy* received_therapy_{nullptr};
-public:
+  //  POINTER_PROPERTY(Therapy, received_therapy)
   Therapy* received_therapy() { return received_therapy_; }
   void set_received_therapy(Therapy* value) { received_therapy_ = value; }
 
-public:
-  ReceiveMDATherapyEvent(Person* person) : PersonEvent(person), received_therapy_(nullptr) {}
+  explicit ReceiveMDATherapyEvent(Person* person) : PersonEvent(person) {}
 
   //    ReceiveMDADrugEvent(const ReceiveMDADrugEvent& orig);
-  virtual ~ReceiveMDATherapyEvent() = default;
+  ~ReceiveMDATherapyEvent() override = default;
 
-  const std::string name() const override { return "ReceiveMDADrugEvent"; }
+  static constexpr std::string_view EVENT_NAME{"ReceiveMDADrugEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
+  Therapy* received_therapy_{nullptr};
   void do_execute() override;
 };
 

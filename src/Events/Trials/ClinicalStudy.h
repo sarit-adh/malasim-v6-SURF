@@ -15,23 +15,30 @@ class Person;
 
 class ClinicalStudy : public WorldEvent {
 private:
-  const int OBSERVATION_PERIOD = 28;
-  const int TOTAL_OBSERVATIONS = 10000;
+  static constexpr int OBSERVATION_PERIOD = 28;
+  static constexpr int TOTAL_OBSERVATIONS = 10000;
 
   struct Enrollee {
     Person* person = nullptr;
     int days = 0;
   };
 
-  int observations = 0;
-  int recrudescence = 0;
-  std::vector<Enrollee> enrollments;
+  int observations_ = 0;
+  int recrudescence_ = 0;
+  std::vector<Enrollee> enrollments_;
 
 public:
   ClinicalStudy() = default;
-  ~ClinicalStudy() = default;
+  ClinicalStudy(const ClinicalStudy &) = delete;
+  ClinicalStudy(ClinicalStudy &&) = delete;
+  ClinicalStudy &operator=(const ClinicalStudy &) = delete;
+  ClinicalStudy &operator=(ClinicalStudy &&) = delete;
+  explicit ClinicalStudy(std::vector<Enrollee> enrollments)
+      : enrollments_(std::move(enrollments)) {}
+  ~ClinicalStudy() override = default;
 
-  const std::string name() const override { return "ClinicalStudy"; }
+  static constexpr std::string_view EVENT_NAME{"clinical_study"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
 private:
   // Triggered by the scheduler

@@ -85,8 +85,12 @@ void Person::set_host_state(const HostStates &value) {
       // clear also remove all infection forces
       all_clonal_parasite_populations_->clear();
       // TODO: remove all events
-      Model::get_mdc()->record_1_death(location_, birthday_, number_of_times_bitten_, age_class_,
-                                       age_);
+      const auto current_time = Model::get_scheduler()->current_time();
+      const auto start_collect_data_day =
+          Model::get_config()->get_simulation_timeframe().get_start_collect_data_day();
+
+      Model::get_mdc()->record_1_death(get_location(), get_age(), get_age_class(),
+                                       average_bites_per_day(start_collect_data_day, current_time));
     }
 
     host_state_ = value;
@@ -667,20 +671,43 @@ double Person::get_age_dependent_biting_factor() const {
   // 4.00 - 5.00  -  17.5
   // + 2.75kg until 20
   // then divide by 61.5
+  constexpr double K_ADULT_WEIGHT = 61.5;
 
-  if (age_ < 1) {
-    const auto age =
-        ((Model::get_scheduler()->current_time() - birthday_) % Constants::DAYS_IN_YEAR)
-        / static_cast<double>(Constants::DAYS_IN_YEAR);
-    if (age < 0.25) return 0.106;
-    if (age < 0.5) return 0.13;
-    if (age < 0.75) return 0.1463;
-    return 0.1545;
+  constexpr double K_UNDER3_MONTHS_FACTOR = 6.5 / K_ADULT_WEIGHT;
+  constexpr double K_UNDER6_MONTHS_FACTOR = 8.0 / K_ADULT_WEIGHT;
+  constexpr double K_UNDER9_MONTHS_FACTOR = 9.0 / K_ADULT_WEIGHT;
+  constexpr double K_UNDER1_YEAR_FACTOR = 9.5 / K_ADULT_WEIGHT;
+
+  constexpr double K_AGE1_FACTOR = 11.0 / K_ADULT_WEIGHT;
+  constexpr double K_AGE2_FACTOR = 13.5 / K_ADULT_WEIGHT;
+  constexpr double K_AGE3_FACTOR = 15.5 / K_ADULT_WEIGHT;
+
+  constexpr double K_AGE4_WEIGHT = 17.5;
+  constexpr double K_ANNUAL_WEIGHT_INCREASE = 2.75;
+
+  if (age_ == 0) {
+    const int age_in_days = Model::get_scheduler()->current_time() - birthday_;
+
+    constexpr int K_THREE_MONTHS = Constants::DAYS_IN_YEAR / 4;
+    constexpr int K_SIX_MONTHS = Constants::DAYS_IN_YEAR / 2;
+    constexpr int K_NINE_MONTHS = Constants::DAYS_IN_YEAR * 3 / 4;
+
+    if (age_in_days < K_THREE_MONTHS) return K_UNDER3_MONTHS_FACTOR;
+    if (age_in_days < K_SIX_MONTHS) return K_UNDER6_MONTHS_FACTOR;
+    if (age_in_days < K_NINE_MONTHS) return K_UNDER9_MONTHS_FACTOR;
+    return K_UNDER1_YEAR_FACTOR;
   }
-  if (age_ < 2) return 0.1789;
-  if (age_ < 3) return 0.2195;
-  if (age_ < 4) return 0.2520;
-  if (age_ < 20) return (17.5 + ((age_ - 4) * 2.75)) / 61.5;
+  if (age_ == 1) return K_AGE1_FACTOR;
+  if (age_ == 2) return K_AGE2_FACTOR;
+  if (age_ == 3) return K_AGE3_FACTOR;
+
+  if (age_ < 20) {
+    // + 2.75kg until 20
+    const double estimated_weight =
+        K_AGE4_WEIGHT + (static_cast<double>(age_ - 4.0) * K_ANNUAL_WEIGHT_INCREASE);
+
+    return estimated_weight / K_ADULT_WEIGHT;
+  }
   return 1.0;
 }
 
@@ -1033,4 +1060,13 @@ void Person::determine_relapse_or_not(ClonalParasitePopulation* clinical_caused_
       clinical_caused_parasite->set_update_function(Model::immunity_clearance_update_function());
     }
   }
+}
+
+double Person::average_bites_per_day(const int start_collect_data_day,
+                                     const int current_time) const {
+  const int first_observed_day = std::max(birthday_, start_collect_data_day);
+
+  const int observed_days = current_time + 1 - first_observed_day;
+
+  return observed_days > 0 ? number_of_times_bitten_ / static_cast<double>(observed_days) : 0.0;
 }

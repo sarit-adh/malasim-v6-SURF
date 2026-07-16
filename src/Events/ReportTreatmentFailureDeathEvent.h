@@ -27,9 +27,8 @@ public:
       : PersonEvent(person), age_class_(0), location_id_(0), therapy_id_(0) {}
   ~ReportTreatmentFailureDeathEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override {
-    return "ReportTreatmentFailureDeathEvent";
-  }
+  static constexpr std::string_view EVENT_NAME{"ReportTreatmentFailureDeathEvent"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 
   [[nodiscard]] core::AgeClass age_class() const { return age_class_; }
   void set_age_class(core::AgeClass value) { age_class_ = value; }

@@ -54,8 +54,6 @@ private:
   }
 
 public:
-  inline static const std::string EVENT_NAME = "update_beta_raster_event";
-
   UpdateBetaRasterEvent(const UpdateBetaRasterEvent &) = delete;
   UpdateBetaRasterEvent(UpdateBetaRasterEvent &&) = delete;
   UpdateBetaRasterEvent &operator=(const UpdateBetaRasterEvent &) = delete;
@@ -66,7 +64,8 @@ public:
 
   ~UpdateBetaRasterEvent() override = default;
 
-  [[nodiscard]] const std::string name() const override { return "update_beta_raster_event"; }
+  static constexpr std::string_view EVENT_NAME{"update_beta_raster_event"};
+  [[nodiscard]] std::string_view name() const noexcept override { return EVENT_NAME; }
 };
 
 #endif
