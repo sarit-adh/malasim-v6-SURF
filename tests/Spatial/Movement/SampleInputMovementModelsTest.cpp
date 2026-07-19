@@ -5,9 +5,7 @@
 #include <vector>
 
 #include "Simulation/Model.h"
-#ifdef USE_DISTANCE_LUT
 #include "Spatial/GIS/LocationPairTable.h"
-#endif
 #include "Spatial/Movement/BarabasiSM.hxx"
 #include "Spatial/Movement/BurkinaFasoSM.h"
 #include "Spatial/Movement/MarshallSM.hxx"
@@ -42,12 +40,8 @@ const std::vector<std::vector<double>> kDistanceMatrix = {
     {0.0, 10.0, 20.0}, {10.0, 0.0, 15.0}, {20.0, 15.0, 0.0}};
 
 const DoubleVector &distance_argument() {
-#ifdef USE_DISTANCE_LUT
   static const DoubleVector empty_distance_vector;
   return empty_distance_vector;
-#else
-  return kDistances;
-#endif
 }
 }  // namespace
 
@@ -60,11 +54,9 @@ protected:
     cli_input.input_path = "test_input.yml";
     Model::set_cli_input(cli_input);
     Model::get_instance()->initialize();
-#ifdef USE_DISTANCE_LUT
     // Replace the fixture table with deterministic distances used by these tests.
-    Model::get_config()->get_spatial_settings().set_spatial_distance_lut(
+    Model::get_config()->get_spatial_settings().set_spatial_distance_table(
         LocationPairTable::make_dense(kDistanceMatrix));
-#endif
   }
 
   void TearDown() override {

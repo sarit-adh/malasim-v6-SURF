@@ -8,9 +8,7 @@
 #ifndef MARSHALLSM_HXX
 #define MARSHALLSM_HXX
 
-#ifdef USE_DISTANCE_LUT
 #include "Spatial/GIS/LocationPairTable.h"
-#endif
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 #include "Utils/TypeDef.h"
@@ -32,17 +30,13 @@ public:
   [[nodiscard]] double get_alpha() const { return alpha_; }
   void set_alpha(const double &value) {
     alpha_ = value;
-#ifdef USE_DISTANCE_LUT
     kernel_lut_ = LocationPairTable{};
-#endif
   }
 
   [[nodiscard]] double get_rho() const { return log_rho_; }
   void set_log_rho(const double &value) {
     log_rho_ = value;
-#ifdef USE_DISTANCE_LUT
     kernel_lut_ = LocationPairTable{};
-#endif
   }
 
   // Existing public data members are retained for source/API compatibility.
@@ -72,10 +66,8 @@ public:
 private:
   void release_dense_kernel();
 
-#ifdef USE_DISTANCE_LUT
   LocationPairTable constructor_distance_lut_;
   LocationPairTable kernel_lut_;
-#endif
 };
 }  // namespace Spatial
 

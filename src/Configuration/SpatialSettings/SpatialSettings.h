@@ -11,9 +11,8 @@
 #include <vector>
 
 #include "Configuration/IConfigData.h"
-#ifdef USE_DISTANCE_LUT
+#include "Spatial/GIS/DistanceProvider.h"
 #include "Spatial/GIS/LocationPairTable.h"
-#endif
 #include "Spatial/GIS/SpatialData.h"
 #include "Spatial/Location/Location.h"
 
@@ -63,15 +62,23 @@ public:
     spatial_distance_matrix_ = value;
   }
 
-#ifdef USE_DISTANCE_LUT
-  [[nodiscard]] LocationPairTable &get_spatial_distance_lut() { return spatial_distance_lut_; }
-  [[nodiscard]] const LocationPairTable &get_spatial_distance_lut() const {
-    return spatial_distance_lut_;
+  [[nodiscard]] DistanceProvider* get_grid_distance_provider() noexcept {
+    return grid_distance_provider_.get();
   }
-  void set_spatial_distance_lut(LocationPairTable value) {
-    spatial_distance_lut_ = std::move(value);
+  [[nodiscard]] const DistanceProvider* get_grid_distance_provider() const noexcept {
+    return grid_distance_provider_.get();
   }
-#endif
+  void set_grid_distance_provider(std::unique_ptr<DistanceProvider> value) {
+    grid_distance_provider_ = std::move(value);
+  }
+
+  [[nodiscard]] LocationPairTable &get_spatial_distance_table() { return spatial_distance_table_; }
+  [[nodiscard]] const LocationPairTable &get_spatial_distance_table() const {
+    return spatial_distance_table_;
+  }
+  void set_spatial_distance_table(LocationPairTable value) {
+    spatial_distance_table_ = std::move(value);
+  }
 
   [[nodiscard]] size_t get_number_of_locations() const { return number_of_location_; }
   void set_number_of_locations(const size_t value) { number_of_location_ = value; }
@@ -98,12 +105,13 @@ private:
   // and combine with other data in the model to populate the right data
   YAML::Node node_;
 
-  // Retained unchanged for source/API compatibility. In USE_DISTANCE_LUT grid mode this
-  // remains empty; location-based configurations still populate it because they are small.
+  // Retained for location-based haversine distances and for selecting the dense
+  // raster verification backend. It remains empty for the raster LUT backend.
   std::vector<std::vector<double>> spatial_distance_matrix_;
-#ifdef USE_DISTANCE_LUT
-  LocationPairTable spatial_distance_lut_;
-#endif
+  // Populated only for raster-grid mode. Location-based mode continues to use
+  // spatial_distance_matrix_ and never constructs a grid distance provider.
+  std::unique_ptr<DistanceProvider> grid_distance_provider_;
+  LocationPairTable spatial_distance_table_;
   size_t number_of_location_{0};
   std::vector<Spatial::Location> location_db_;
   std::unique_ptr<SpatialData> spatial_data_{nullptr};
@@ -249,7 +257,8 @@ struct convert<SpatialSettings::LocationBased> {
     rhs.population_size_by_location =
         std::move(node["population_size_by_location"].as<std::vector<int>>());
 
-    spdlog::info("Location based settings decoded successfully with {} locations", rhs.locations.size());
+    spdlog::info("Location based settings decoded successfully with {} locations",
+                 rhs.locations.size());
     spdlog::info("Total locations: {}", rhs.population_size_by_location.size());
     for (int loc = 0; loc < rhs.locations.size(); loc++) {
       spdlog::info("\tLocation {}: id={}, lat={}, lon={}, pop_size={}", loc, rhs.locations[loc].id,

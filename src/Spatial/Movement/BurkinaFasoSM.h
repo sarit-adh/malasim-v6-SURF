@@ -12,9 +12,7 @@
 
 #include <utility>
 
-#ifdef USE_DISTANCE_LUT
 #include "Spatial/GIS/LocationPairTable.h"
-#endif
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 #include "Utils/TypeDef.h"
@@ -33,17 +31,13 @@ public:
   [[nodiscard]] double get_alpha() const { return alpha_; }
   void set_alpha(const double &value) {
     alpha_ = value;
-#ifdef USE_DISTANCE_LUT
     kernel_lut_ = LocationPairTable{};
-#endif
   }
 
   [[nodiscard]] double get_rho() const { return rho_; }
   void set_rho(const double &value) {
     rho_ = value;
-#ifdef USE_DISTANCE_LUT
     kernel_lut_ = LocationPairTable{};
-#endif
   }
 
   [[nodiscard]] double get_capital() const { return capital_; }
@@ -63,19 +57,13 @@ private:
 
   // These variables are computed when prepare() is called.
   std::vector<double> travel_;
-#ifndef USE_DISTANCE_LUT
-  std::vector<std::vector<double>> kernel_;
-#else
   LocationPairTable constructor_distance_lut_;
   LocationPairTable kernel_lut_;
   bool has_district_level_{false};
   std::vector<int> district_by_location_;
-#endif
 
   void prepare_kernel();
-#ifdef USE_DISTANCE_LUT
   void prepare_districts();
-#endif
 
 public:
   explicit BurkinaFasoSM(double tau, double alpha, double rho, double capital, double penalty,

@@ -624,16 +624,11 @@ void Population::perform_circulation_from_location(const int from_location,
       Model::get_random()->random_poisson(poisson_means);
   if (number_of_circulating_from_this_location == 0) { return; }
 
-#ifdef USE_DISTANCE_LUT
-  // The public movement API is intentionally unchanged, but LUT-enabled models
+  // The public movement API is intentionally unchanged, but movement models
   // own their precomputed distance kernels after prepare(). Passing an empty
   // compatibility vector avoids materialising and then discarding an O(N) row.
   static const DoubleVector unused_relative_distance_vector;
   const DoubleVector &relative_distance_vector = unused_relative_distance_vector;
-#else
-  const DoubleVector &relative_distance_vector =
-      Model::get_config()->get_spatial_settings().get_spatial_distance_matrix()[from_location];
-#endif
 
   auto v_relative_outmovement_to_destination =
       Model::get_config()

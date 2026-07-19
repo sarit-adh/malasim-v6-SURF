@@ -67,16 +67,14 @@ void LocationBasedProcessor::process_config() {
   // assign back to spatial settings
   get_spatial_settings()->set_location_db(location_db);
   get_spatial_settings()->set_spatial_distance_matrix(spatial_distance_matrix);
-#ifdef USE_DISTANCE_LUT
+  get_spatial_settings()->set_grid_distance_provider(nullptr);
   // Arbitrary latitude/longitude pairs do not share grid deltas, so use the
   // dense fallback. Location-based inputs have few locations and remain small.
-  get_spatial_settings()->set_spatial_distance_lut(
+  get_spatial_settings()->set_spatial_distance_table(
       LocationPairTable::make_dense(spatial_distance_matrix));
-#endif
   get_spatial_settings()->set_number_of_locations(number_of_location);
 
   // ensure spatial_data and its admin_level_manager are prepared
   get_spatial_settings()->set_spatial_data(std::make_unique<SpatialData>(get_spatial_settings()));
   get_spatial_settings()->spatial_data()->initialize_admin_boundaries();
 }
-

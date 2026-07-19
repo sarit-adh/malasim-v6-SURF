@@ -11,9 +11,7 @@
 
 #include <cmath>
 
-#ifdef USE_DISTANCE_LUT
 #include "Spatial/GIS/LocationPairTable.h"
-#endif
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 #include "Utils/TypeDef.h"
@@ -49,9 +47,7 @@ public:
   [[nodiscard]] double get_gamma() const { return gamma_; }
   void set_gamma(const double &value) {
     gamma_ = value;
-#ifdef USE_DISTANCE_LUT
     distance_power_ = LocationPairTable{};
-#endif
   }
 
   explicit WesolowskiSurfaceSM(double kappa, double alpha, double beta, double gamma,
@@ -73,9 +69,7 @@ public:
       const IntVector &v_number_of_residents_by_location) const override;
 
 private:
-#ifdef USE_DISTANCE_LUT
   LocationPairTable distance_power_;
-#endif
 };
 }  // namespace Spatial
 

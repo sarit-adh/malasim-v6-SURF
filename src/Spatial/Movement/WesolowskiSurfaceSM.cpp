@@ -3,11 +3,10 @@
 #include "Simulation/Model.h"
 
 void Spatial::WesolowskiSurfaceSM::prepare() {
-#ifdef USE_DISTANCE_LUT
   distance_power_ = LocationPairTable{};
   if (Model::get_config() != nullptr) {
     const auto &distances =
-        Model::get_config()->get_spatial_settings().get_spatial_distance_lut();
+        Model::get_config()->get_spatial_settings().get_spatial_distance_table();
     if (!distances.empty()) {
       const double gamma = gamma_;
       distance_power_ = distances.map_with_zero_sentinel(
@@ -15,7 +14,6 @@ void Spatial::WesolowskiSurfaceSM::prepare() {
           "WesolowskiSurfaceSM distance powers");
     }
   }
-#endif
 
   AscFile* travel_raster =
       Model::get_spatial_data()->get_raster(SpatialData::SpatialFileType::TRAVEL);
@@ -36,7 +34,6 @@ DoubleVector Spatial::WesolowskiSurfaceSM::get_v_relative_out_movement_to_destin
       std::pow(v_number_of_residents_by_location[from_location], alpha_);
   const double source_travel = travel[from_location];
 
-#ifdef USE_DISTANCE_LUT
   if (distance_power_.size() == static_cast<size_t>(number_of_locations)) {
     const auto distance_power = distance_power_.row_view(from_location);
     for (int destination = 0; destination < number_of_locations; ++destination) {
@@ -52,15 +49,12 @@ DoubleVector Spatial::WesolowskiSurfaceSM::get_v_relative_out_movement_to_destin
     }
     return results;
   }
-#endif
 
   // Compatibility fallback for standalone/unit-test construction and old mode.
-#ifdef USE_DISTANCE_LUT
   if (relative_distance_vector.size() < static_cast<size_t>(number_of_locations)) {
     throw std::runtime_error(fmt::format(
         "WesolowskiSurfaceSM called without a prepared distance LUT or compatibility distance row"));
   }
-#endif
   for (int destination = 0; destination < number_of_locations; ++destination) {
     const double distance = relative_distance_vector[destination];
     if (NumberHelpers::is_zero(distance)) { continue; }

@@ -11,9 +11,7 @@
 
 #include <cmath>
 
-#ifdef USE_DISTANCE_LUT
 #include "Spatial/GIS/LocationPairTable.h"
-#endif
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 
@@ -31,25 +29,19 @@ public:
   [[nodiscard]] double get_r_g_0() const { return r_g_0_; }
   void set_r_g_0(const double &value) {
     r_g_0_ = value;
-#ifdef USE_DISTANCE_LUT
     movement_weight_ = LocationPairTable{};
-#endif
   }
 
   [[nodiscard]] double get_beta_r() const { return beta_r_; }
   void set_beta_r(const double &value) {
     beta_r_ = value;
-#ifdef USE_DISTANCE_LUT
     movement_weight_ = LocationPairTable{};
-#endif
   }
 
   [[nodiscard]] double get_kappa() const { return kappa_; }
   void set_kappa(const double &value) {
     kappa_ = value;
-#ifdef USE_DISTANCE_LUT
     movement_weight_ = LocationPairTable{};
-#endif
   }
 
   explicit BarabasiSM(double r_g_0, double beta_r, double kappa)
@@ -70,9 +62,7 @@ private:
   double beta_r_;
   double kappa_;
 
-#ifdef USE_DISTANCE_LUT
   LocationPairTable movement_weight_;
-#endif
 };
 }  // namespace Spatial
 
