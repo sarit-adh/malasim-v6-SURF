@@ -11,7 +11,7 @@
 
 #include <cmath>
 
-#include "Spatial/GIS/LocationPairTable.h"
+#include "Spatial/GIS/GridPairTable.h"
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 
@@ -29,19 +29,19 @@ public:
   [[nodiscard]] double get_r_g_0() const { return r_g_0_; }
   void set_r_g_0(const double &value) {
     r_g_0_ = value;
-    movement_weight_ = LocationPairTable{};
+    movement_weight_ = GridPairTable{};
   }
 
   [[nodiscard]] double get_beta_r() const { return beta_r_; }
   void set_beta_r(const double &value) {
     beta_r_ = value;
-    movement_weight_ = LocationPairTable{};
+    movement_weight_ = GridPairTable{};
   }
 
   [[nodiscard]] double get_kappa() const { return kappa_; }
   void set_kappa(const double &value) {
     kappa_ = value;
-    movement_weight_ = LocationPairTable{};
+    movement_weight_ = GridPairTable{};
   }
 
   explicit BarabasiSM(double r_g_0, double beta_r, double kappa)
@@ -53,7 +53,8 @@ public:
 
   // Public API intentionally remains identical to 500054a in both build modes.
   [[nodiscard]] std::vector<double> get_v_relative_out_movement_to_destination(
-      const int &from_location, const int &number_of_locations,
+      const int &from_location,
+      const int &number_of_locations,
       const std::vector<double> &relative_distance_vector,
       const std::vector<int> &v_number_of_residents_by_location) const override;
 
@@ -62,7 +63,7 @@ private:
   double beta_r_;
   double kappa_;
 
-  LocationPairTable movement_weight_;
+  GridPairTable movement_weight_;
 };
 }  // namespace Spatial
 

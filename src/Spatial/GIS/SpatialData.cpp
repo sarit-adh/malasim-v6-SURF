@@ -165,9 +165,6 @@ void SpatialData::generate_distances() const {
           "Raster-grid distance factory did not create the selected LUT backend");
     }
 
-    spatial_settings_->get_spatial_distance_matrix().clear();
-    spatial_settings_->set_spatial_distance_table(lut->table());
-
     const auto dense_bytes = locations * locations * sizeof(double);
     spdlog::info(
         "Euclidean distances for {} raster locations stored in {:.1f} MB (dense would be {:.1f} "
@@ -179,15 +176,10 @@ void SpatialData::generate_distances() const {
       throw std::logic_error(
           "Raster-grid distance factory did not create the selected dense backend");
     }
-    spatial_settings_->set_spatial_distance_matrix(dense->matrix());
-    // Movement kernels still consume the generic pair table. Dense raster
-    // verification therefore remains runnable by changing only the hard-coded
-    // backend constant above.
-    spatial_settings_->set_spatial_distance_table(LocationPairTable::make_dense(dense->matrix()));
     spdlog::debug("Updated Euclidean raster distances using the dense provider");
   }
 
-  spatial_settings_->set_grid_distance_provider(std::move(provider));
+  spatial_settings_->set_distance_provider(std::move(provider));
 }
 
 void SpatialData::generate_locations(AscFile* reference) {

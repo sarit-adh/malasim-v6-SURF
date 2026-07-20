@@ -77,11 +77,22 @@ TEST(DistanceProviderTest, HardCodedRasterBackendSelectsLut) {
   EXPECT_NE(dynamic_cast<GridLutDistanceProvider*>(provider.get()), nullptr);
 }
 
-TEST(DistanceProviderTest, LocationBasedSettingsDoNotCreateGridProvider) {
+TEST(DistanceProviderTest, LocationBasedSettingsHaveNoProviderBeforeProcessing) {
   SpatialSettings settings;
   settings.set_mode(SpatialSettings::LOCATION_BASED_MODE);
 
-  EXPECT_EQ(settings.get_grid_distance_provider(), nullptr);
+  EXPECT_EQ(settings.get_distance_provider(), nullptr);
+}
+
+TEST(DistanceProviderTest, DenseProviderPreservesHaversineMatrixRows) {
+  const std::vector<std::vector<double>> matrix = {{0.0, 1.5}, {1.5, 0.0}};
+  const DenseDistanceProvider provider(matrix);
+
+  ASSERT_EQ(provider.size(), matrix.size());
+  ASSERT_NE(provider.dense_row(0), nullptr);
+  EXPECT_EQ(*provider.dense_row(0), matrix[0]);
+  EXPECT_DOUBLE_EQ(provider.distance(1, 0), matrix[1][0]);
+  EXPECT_EQ(provider.grid_table(), nullptr);
 }
 
 TEST(DistanceProviderTest, LutStorageIsSmallerThanDenseStorage) {

@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "Simulation/Model.h"
-#include "Spatial/GIS/LocationPairTable.h"
 #include "Spatial/Movement/BarabasiSM.hxx"
 #include "Spatial/Movement/BurkinaFasoSM.h"
 #include "Spatial/Movement/MarshallSM.hxx"
@@ -36,13 +35,7 @@ constexpr double kBurkinaPenalty = 12.0;
 
 const DoubleVector kDistances = {0.0, 10.0, 20.0};
 const IntVector kResidents = {1000, 2000, 3000};
-const std::vector<std::vector<double>> kDistanceMatrix = {
-    {0.0, 10.0, 20.0}, {10.0, 0.0, 15.0}, {20.0, 15.0, 0.0}};
-
-const DoubleVector &distance_argument() {
-  static const DoubleVector empty_distance_vector;
-  return empty_distance_vector;
-}
+const DoubleVector &distance_argument() { return kDistances; }
 }  // namespace
 
 class SampleInputMovementModelsTest : public ::testing::Test {
@@ -54,9 +47,6 @@ protected:
     cli_input.input_path = "test_input.yml";
     Model::set_cli_input(cli_input);
     Model::get_instance()->initialize();
-    // Replace the fixture table with deterministic distances used by these tests.
-    Model::get_config()->get_spatial_settings().set_spatial_distance_table(
-        LocationPairTable::make_dense(kDistanceMatrix));
   }
 
   void TearDown() override {
@@ -82,8 +72,8 @@ TEST_F(SampleInputMovementModelsTest, BarabasiUsesSampleInputParameters) {
 }
 
 TEST_F(SampleInputMovementModelsTest, WesolowskiUsesSampleInputParameters) {
-  Spatial::WesolowskiSM model(kWesolowskiKappa, kWesolowskiAlpha,
-                              kWesolowskiBeta, kWesolowskiGamma);
+  Spatial::WesolowskiSM model(kWesolowskiKappa, kWesolowskiAlpha, kWesolowskiBeta,
+                              kWesolowskiGamma);
   model.prepare();
   const auto movement = model.get_v_relative_out_movement_to_destination(
       0, static_cast<int>(kDistances.size()), distance_argument(), kResidents);
@@ -96,16 +86,14 @@ TEST_F(SampleInputMovementModelsTest, WesolowskiUsesSampleInputParameters) {
   EXPECT_NEAR(
       movement[1],
       kWesolowskiKappa
-          * (std::pow(kResidents[0], kWesolowskiAlpha)
-             * std::pow(kResidents[1], kWesolowskiBeta))
+          * (std::pow(kResidents[0], kWesolowskiAlpha) * std::pow(kResidents[1], kWesolowskiBeta))
           / std::pow(kDistances[1], kWesolowskiGamma),
       1e-14);
 }
 
 TEST_F(SampleInputMovementModelsTest, WesolowskiSurfaceUsesSampleInputParameters) {
-  Spatial::WesolowskiSurfaceSM model(kWesolowskiKappa, kWesolowskiAlpha,
-                                     kWesolowskiBeta, kWesolowskiGamma,
-                                     static_cast<int>(kDistances.size()));
+  Spatial::WesolowskiSurfaceSM model(kWesolowskiKappa, kWesolowskiAlpha, kWesolowskiBeta,
+                                     kWesolowskiGamma, static_cast<int>(kDistances.size()));
   model.prepare();
   model.travel = {0.0, 0.5, 1.0};
   const auto movement = model.get_v_relative_out_movement_to_destination(
@@ -113,8 +101,7 @@ TEST_F(SampleInputMovementModelsTest, WesolowskiSurfaceUsesSampleInputParameters
 
   const double gravity =
       kWesolowskiKappa
-      * (std::pow(kResidents[0], kWesolowskiAlpha)
-         * std::pow(kResidents[1], kWesolowskiBeta))
+      * (std::pow(kResidents[0], kWesolowskiAlpha) * std::pow(kResidents[1], kWesolowskiBeta))
       / std::pow(kDistances[1], kWesolowskiGamma);
   EXPECT_DOUBLE_EQ(movement[0], 0.0);
   EXPECT_NEAR(movement[1], gravity / (1.0 + model.travel[0] + model.travel[1]), 1e-14);
@@ -122,7 +109,7 @@ TEST_F(SampleInputMovementModelsTest, WesolowskiSurfaceUsesSampleInputParameters
 
 TEST_F(SampleInputMovementModelsTest, MarshallUsesSampleInputParameters) {
   Spatial::MarshallSM model(kMarshallTau, kMarshallAlpha, kMarshallLogRho,
-                            static_cast<int>(kDistances.size()), kDistanceMatrix);
+                            static_cast<int>(kDistances.size()));
   model.prepare();
   const auto movement = model.get_v_relative_out_movement_to_destination(
       0, static_cast<int>(kDistances.size()), distance_argument(), kResidents);
@@ -138,9 +125,8 @@ TEST_F(SampleInputMovementModelsTest, MarshallUsesSampleInputParameters) {
 }
 
 TEST_F(SampleInputMovementModelsTest, BurkinaFasoUsesSampleInputParameters) {
-  Spatial::BurkinaFasoSM model(kBurkinaTau, kBurkinaAlpha, kBurkinaRho,
-                               kBurkinaCapital, kBurkinaPenalty,
-                               static_cast<int>(kDistances.size()), kDistanceMatrix);
+  Spatial::BurkinaFasoSM model(kBurkinaTau, kBurkinaAlpha, kBurkinaRho, kBurkinaCapital,
+                               kBurkinaPenalty, static_cast<int>(kDistances.size()));
   model.prepare();
   const auto movement = model.get_v_relative_out_movement_to_destination(
       0, static_cast<int>(kDistances.size()), distance_argument(), kResidents);

@@ -1,16 +1,17 @@
 #include "Spatial/Movement/WesolowskiSurfaceSM.h"
 
 #include "Simulation/Model.h"
+#include "Spatial/Movement/MovementKernel.h"
 
 void Spatial::WesolowskiSurfaceSM::prepare() {
-  distance_power_ = LocationPairTable{};
+  distance_power_ = GridPairTable{};
   if (Model::get_config() != nullptr) {
-    const auto &distances =
-        Model::get_config()->get_spatial_settings().get_spatial_distance_table();
-    if (!distances.empty()) {
+    const auto* provider = Model::get_config()->get_spatial_settings().get_distance_provider();
+    const auto* distances = provider == nullptr ? nullptr : provider->grid_table();
+    if (distances != nullptr) {
       const double gamma = gamma_;
-      distance_power_ = distances.map_with_zero_sentinel(
-          [gamma](double distance) { return std::pow(distance, gamma); },
+      distance_power_ = make_grid_movement_kernel(
+          *distances, [gamma](double distance) { return std::pow(distance, gamma); },
           "WesolowskiSurfaceSM distance powers");
     }
   }
@@ -21,7 +22,8 @@ void Spatial::WesolowskiSurfaceSM::prepare() {
 }
 
 DoubleVector Spatial::WesolowskiSurfaceSM::get_v_relative_out_movement_to_destination(
-    const int &from_location, const int &number_of_locations,
+    const int &from_location,
+    const int &number_of_locations,
     const DoubleVector &relative_distance_vector,
     const IntVector &v_number_of_residents_by_location) const {
   if (travel.empty()) {
@@ -35,7 +37,7 @@ DoubleVector Spatial::WesolowskiSurfaceSM::get_v_relative_out_movement_to_destin
   const double source_travel = travel[from_location];
 
   if (distance_power_.size() == static_cast<size_t>(number_of_locations)) {
-    const auto distance_power = distance_power_.row_view(from_location);
+    const auto distance_power = distance_power_.values_from(from_location);
     for (int destination = 0; destination < number_of_locations; ++destination) {
       const double denominator = distance_power[static_cast<size_t>(destination)];
       if (NumberHelpers::is_zero(denominator)) { continue; }
@@ -52,18 +54,18 @@ DoubleVector Spatial::WesolowskiSurfaceSM::get_v_relative_out_movement_to_destin
 
   // Compatibility fallback for standalone/unit-test construction and old mode.
   if (relative_distance_vector.size() < static_cast<size_t>(number_of_locations)) {
-    throw std::runtime_error(fmt::format(
-        "WesolowskiSurfaceSM called without a prepared distance LUT or compatibility distance row"));
+    throw std::runtime_error(
+        fmt::format("WesolowskiSurfaceSM called without a prepared distance LUT or compatibility "
+                    "distance row"));
   }
   for (int destination = 0; destination < number_of_locations; ++destination) {
     const double distance = relative_distance_vector[destination];
     if (NumberHelpers::is_zero(distance)) { continue; }
 
-    const double probability =
-        kappa_
-        * (source_population_power
-           * std::pow(v_number_of_residents_by_location[destination], beta_))
-        / std::pow(distance, gamma_);
+    const double probability = kappa_
+                               * (source_population_power
+                                  * std::pow(v_number_of_residents_by_location[destination], beta_))
+                               / std::pow(distance, gamma_);
     results[destination] = probability / (1.0 + source_travel + travel[destination]);
   }
   return results;

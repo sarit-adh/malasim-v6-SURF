@@ -12,7 +12,6 @@
 
 #include "Configuration/IConfigData.h"
 #include "Spatial/GIS/DistanceProvider.h"
-#include "Spatial/GIS/LocationPairTable.h"
 #include "Spatial/GIS/SpatialData.h"
 #include "Spatial/Location/Location.h"
 
@@ -52,32 +51,14 @@ public:
   [[nodiscard]] const std::string &get_mode() const { return mode_; }
   void set_mode(const std::string &value) { mode_ = value; }
 
-  [[nodiscard]] std::vector<std::vector<double>> &get_spatial_distance_matrix() {
-    return spatial_distance_matrix_;
+  [[nodiscard]] DistanceProvider* get_distance_provider() noexcept {
+    return distance_provider_.get();
   }
-  [[nodiscard]] const std::vector<std::vector<double>> &get_spatial_distance_matrix() const {
-    return spatial_distance_matrix_;
+  [[nodiscard]] const DistanceProvider* get_distance_provider() const noexcept {
+    return distance_provider_.get();
   }
-  void set_spatial_distance_matrix(const std::vector<std::vector<double>> &value) {
-    spatial_distance_matrix_ = value;
-  }
-
-  [[nodiscard]] DistanceProvider* get_grid_distance_provider() noexcept {
-    return grid_distance_provider_.get();
-  }
-  [[nodiscard]] const DistanceProvider* get_grid_distance_provider() const noexcept {
-    return grid_distance_provider_.get();
-  }
-  void set_grid_distance_provider(std::unique_ptr<DistanceProvider> value) {
-    grid_distance_provider_ = std::move(value);
-  }
-
-  [[nodiscard]] LocationPairTable &get_spatial_distance_table() { return spatial_distance_table_; }
-  [[nodiscard]] const LocationPairTable &get_spatial_distance_table() const {
-    return spatial_distance_table_;
-  }
-  void set_spatial_distance_table(LocationPairTable value) {
-    spatial_distance_table_ = std::move(value);
+  void set_distance_provider(std::unique_ptr<DistanceProvider> value) {
+    distance_provider_ = std::move(value);
   }
 
   [[nodiscard]] size_t get_number_of_locations() const { return number_of_location_; }
@@ -105,13 +86,7 @@ private:
   // and combine with other data in the model to populate the right data
   YAML::Node node_;
 
-  // Retained for location-based haversine distances and for selecting the dense
-  // raster verification backend. It remains empty for the raster LUT backend.
-  std::vector<std::vector<double>> spatial_distance_matrix_;
-  // Populated only for raster-grid mode. Location-based mode continues to use
-  // spatial_distance_matrix_ and never constructs a grid distance provider.
-  std::unique_ptr<DistanceProvider> grid_distance_provider_;
-  LocationPairTable spatial_distance_table_;
+  std::unique_ptr<DistanceProvider> distance_provider_;
   size_t number_of_location_{0};
   std::vector<Spatial::Location> location_db_;
   std::unique_ptr<SpatialData> spatial_data_{nullptr};

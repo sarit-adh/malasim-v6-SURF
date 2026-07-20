@@ -11,7 +11,7 @@
 
 #include <cmath>
 
-#include "Spatial/GIS/LocationPairTable.h"
+#include "Spatial/GIS/GridPairTable.h"
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 #include "Utils/TypeDef.h"
@@ -20,12 +20,12 @@ namespace Spatial {
 class WesolowskiSurfaceSM : public SpatialModel {
 public:
   // Disallow copy
-  WesolowskiSurfaceSM(const WesolowskiSurfaceSM&) = delete;
-  WesolowskiSurfaceSM& operator=(const WesolowskiSurfaceSM&) = delete;
+  WesolowskiSurfaceSM(const WesolowskiSurfaceSM &) = delete;
+  WesolowskiSurfaceSM &operator=(const WesolowskiSurfaceSM &) = delete;
 
   // Disallow move
-  WesolowskiSurfaceSM(WesolowskiSurfaceSM&&) = delete;
-  WesolowskiSurfaceSM& operator=(WesolowskiSurfaceSM&&) = delete;
+  WesolowskiSurfaceSM(WesolowskiSurfaceSM &&) = delete;
+  WesolowskiSurfaceSM &operator=(WesolowskiSurfaceSM &&) = delete;
 
   double kappa_;
   double alpha_;
@@ -47,11 +47,11 @@ public:
   [[nodiscard]] double get_gamma() const { return gamma_; }
   void set_gamma(const double &value) {
     gamma_ = value;
-    distance_power_ = LocationPairTable{};
+    distance_power_ = GridPairTable{};
   }
 
-  explicit WesolowskiSurfaceSM(double kappa, double alpha, double beta, double gamma,
-                               int number_of_locations)
+  explicit WesolowskiSurfaceSM(
+      double kappa, double alpha, double beta, double gamma, int number_of_locations)
       : kappa_(kappa),
         alpha_(alpha),
         beta_(beta),
@@ -64,12 +64,13 @@ public:
 
   // Public API intentionally remains identical to 500054a in both build modes.
   [[nodiscard]] DoubleVector get_v_relative_out_movement_to_destination(
-      const int &from_location, const int &number_of_locations,
+      const int &from_location,
+      const int &number_of_locations,
       const DoubleVector &relative_distance_vector,
       const IntVector &v_number_of_residents_by_location) const override;
 
 private:
-  LocationPairTable distance_power_;
+  GridPairTable distance_power_;
 };
 }  // namespace Spatial
 

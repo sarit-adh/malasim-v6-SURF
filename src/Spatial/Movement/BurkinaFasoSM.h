@@ -12,7 +12,7 @@
 
 #include <utility>
 
-#include "Spatial/GIS/LocationPairTable.h"
+#include "Spatial/GIS/GridPairTable.h"
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 #include "Utils/TypeDef.h"
@@ -31,13 +31,13 @@ public:
   [[nodiscard]] double get_alpha() const { return alpha_; }
   void set_alpha(const double &value) {
     alpha_ = value;
-    kernel_lut_ = LocationPairTable{};
+    kernel_lut_ = GridPairTable{};
   }
 
   [[nodiscard]] double get_rho() const { return rho_; }
   void set_rho(const double &value) {
     rho_ = value;
-    kernel_lut_ = LocationPairTable{};
+    kernel_lut_ = GridPairTable{};
   }
 
   [[nodiscard]] double get_capital() const { return capital_; }
@@ -53,12 +53,10 @@ private:
   double capital_;
   double penalty_;
   uint64_t number_of_locations_;
-  std::vector<std::vector<double>> spatial_distance_matrix_;
 
   // These variables are computed when prepare() is called.
   std::vector<double> travel_;
-  LocationPairTable constructor_distance_lut_;
-  LocationPairTable kernel_lut_;
+  GridPairTable kernel_lut_;
   bool has_district_level_{false};
   std::vector<int> district_by_location_;
 
@@ -66,9 +64,12 @@ private:
   void prepare_districts();
 
 public:
-  explicit BurkinaFasoSM(double tau, double alpha, double rho, double capital, double penalty,
-                         int number_of_locations,
-                         std::vector<std::vector<double>> spatial_distance_matrix);
+  explicit BurkinaFasoSM(double tau,
+                         double alpha,
+                         double rho,
+                         double capital,
+                         double penalty,
+                         int number_of_locations);
 
   ~BurkinaFasoSM() override = default;
 
@@ -76,7 +77,8 @@ public:
 
   // Public API intentionally remains identical to 500054a in both build modes.
   [[nodiscard]] DoubleVector get_v_relative_out_movement_to_destination(
-      const int &from_location, const int &number_of_locations,
+      const int &from_location,
+      const int &number_of_locations,
       const DoubleVector &relative_distance_vector,
       const IntVector &v_number_of_residents_by_location) const override;
 };

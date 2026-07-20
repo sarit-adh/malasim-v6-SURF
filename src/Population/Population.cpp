@@ -624,11 +624,16 @@ void Population::perform_circulation_from_location(const int from_location,
       Model::get_random()->random_poisson(poisson_means);
   if (number_of_circulating_from_this_location == 0) { return; }
 
-  // The public movement API is intentionally unchanged, but movement models
-  // own their precomputed distance kernels after prepare(). Passing an empty
-  // compatibility vector avoids materialising and then discarding an O(N) row.
-  static const DoubleVector unused_relative_distance_vector;
-  const DoubleVector &relative_distance_vector = unused_relative_distance_vector;
+  // Location-based providers expose their existing dense row. Raster LUT
+  // providers return no dense row because movement models use their prepared
+  // compact kernels instead.
+  static const DoubleVector empty_relative_distance_vector;
+  const auto* distance_provider =
+      Model::get_config()->get_spatial_settings().get_distance_provider();
+  const auto* dense_row =
+      distance_provider == nullptr ? nullptr : distance_provider->dense_row(from_location);
+  const DoubleVector &relative_distance_vector =
+      dense_row == nullptr ? empty_relative_distance_vector : *dense_row;
 
   auto v_relative_outmovement_to_destination =
       Model::get_config()

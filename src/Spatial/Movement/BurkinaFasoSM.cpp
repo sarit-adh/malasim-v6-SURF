@@ -1,26 +1,21 @@
 #include "Spatial/Movement/BurkinaFasoSM.h"
 
 #include "Simulation/Model.h"
+#include "Spatial/Movement/MovementKernel.h"
 
 Spatial::BurkinaFasoSM::BurkinaFasoSM(
-    double tau, double alpha, double rho, double capital, double penalty,
-    int number_of_locations, std::vector<std::vector<double>> spatial_distance_matrix)
+    double tau, double alpha, double rho, double capital, double penalty, int number_of_locations)
     : tau_(tau),
       alpha_(alpha),
       rho_(rho),
       capital_(capital),
       penalty_(penalty),
-      number_of_locations_(number_of_locations),
-      spatial_distance_matrix_(std::move(spatial_distance_matrix)) {
-  if (!spatial_distance_matrix_.empty()) {
-    constructor_distance_lut_ = LocationPairTable::make_dense(spatial_distance_matrix_);
-  }
-}
+      number_of_locations_(number_of_locations) {}
 
 void Spatial::BurkinaFasoSM::prepare() {
   prepare_kernel();
-  spdlog::info("Kernel prepared for BurkinaFasoSM, {} locations, {:.1f} MB",
-               kernel_lut_.size(), kernel_lut_.memory_bytes() / 1048576.0);
+  spdlog::info("Kernel prepared for BurkinaFasoSM, {} locations, {:.1f} MB", kernel_lut_.size(),
+               kernel_lut_.memory_bytes() / 1048576.0);
 
   travel_.clear();
   if (Model::get_spatial_data() != nullptr) {
@@ -40,25 +35,20 @@ void Spatial::BurkinaFasoSM::prepare() {
 }
 
 void Spatial::BurkinaFasoSM::prepare_kernel() {
-  kernel_lut_ = LocationPairTable{};
-  const LocationPairTable* distances = nullptr;
-
-  if (!constructor_distance_lut_.empty()) {
-    distances = &constructor_distance_lut_;
-  } else if (Model::get_config() != nullptr) {
-    const auto &configured =
-        Model::get_config()->get_spatial_settings().get_spatial_distance_table();
-    if (!configured.empty()) { distances = &configured; }
+  kernel_lut_ = GridPairTable{};
+  const GridPairTable* distances = nullptr;
+  if (Model::get_config() != nullptr) {
+    const auto* provider = Model::get_config()->get_spatial_settings().get_distance_provider();
+    distances = provider == nullptr ? nullptr : provider->grid_table();
   }
 
   if (distances == nullptr) { return; }
 
   const double rho = rho_;
   const double alpha = alpha_;
-  kernel_lut_ = distances->map_with_zero_sentinel(
-      [rho, alpha](double distance) {
-        return std::pow(1.0 + (distance / rho), -alpha);
-      },
+  kernel_lut_ = make_grid_movement_kernel(
+      *distances,
+      [rho, alpha](double distance) { return std::pow(1.0 + (distance / rho), -alpha); },
       "BurkinaFasoSM kernel");
 }
 
@@ -80,7 +70,8 @@ void Spatial::BurkinaFasoSM::prepare_districts() {
 }
 
 DoubleVector Spatial::BurkinaFasoSM::get_v_relative_out_movement_to_destination(
-    const int &from_location, const int &number_of_locations,
+    const int &from_location,
+    const int &number_of_locations,
     const DoubleVector &relative_distance_vector,
     const IntVector &v_number_of_residents_by_location) const {
   const double source_population_power =
@@ -90,20 +81,19 @@ DoubleVector Spatial::BurkinaFasoSM::get_v_relative_out_movement_to_destination(
   DoubleVector results(number_of_locations, 0.0);
 
   const bool use_kernel = kernel_lut_.size() == static_cast<size_t>(number_of_locations);
-  if (!use_kernel
-      && relative_distance_vector.size() < static_cast<size_t>(number_of_locations)) {
+  if (!use_kernel && relative_distance_vector.size() < static_cast<size_t>(number_of_locations)) {
     throw std::runtime_error(fmt::format(
         "BurkinaFasoSM called without a prepared distance LUT or compatibility distance row"));
   }
-  const auto kernel_row = use_kernel ? kernel_lut_.row_view(from_location)
-                                     : LocationPairTable::RowView{};
+  const auto kernel_values =
+      use_kernel ? kernel_lut_.values_from(from_location) : GridPairTable::ValuesFromLocation{};
   const bool source_in_capital =
       has_district_level_ && district_by_location_[from_location] == capital_;
 
   for (int destination = 0; destination < number_of_locations; ++destination) {
     double kernel_value = 0.0;
     if (use_kernel) {
-      kernel_value = kernel_row[static_cast<size_t>(destination)];
+      kernel_value = kernel_values[static_cast<size_t>(destination)];
     } else {
       const double distance = relative_distance_vector[destination];
       if (NumberHelpers::is_zero(distance)) { continue; }
@@ -112,9 +102,7 @@ DoubleVector Spatial::BurkinaFasoSM::get_v_relative_out_movement_to_destination(
     if (NumberHelpers::is_zero(kernel_value)) { continue; }
 
     double probability = source_population_power * kernel_value;
-    if (use_travel) {
-      probability /= 1.0 + source_travel + travel_[destination];
-    }
+    if (use_travel) { probability /= 1.0 + source_travel + travel_[destination]; }
 
     if (source_in_capital && district_by_location_[destination] == capital_) {
       probability /= penalty_;

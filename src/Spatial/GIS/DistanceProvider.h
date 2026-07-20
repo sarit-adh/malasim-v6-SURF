@@ -1,9 +1,8 @@
 /*
  * DistanceProvider.h
  *
- * Interchangeable distance storage for raster-grid locations. Location-based
- * configurations use their existing haversine distance matrix and do not use
- * these providers.
+ * Interchangeable distance storage for both raster-grid and location-based
+ * configurations.
  */
 #ifndef SPATIAL_GIS_DISTANCEPROVIDER_H
 #define SPATIAL_GIS_DISTANCEPROVIDER_H
@@ -12,9 +11,10 @@
 #include <cstddef>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
-#include "Spatial/GIS/LocationPairTable.h"
+#include "Spatial/GIS/GridPairTable.h"
 #include "Spatial/Location/Location.h"
 
 class DistanceProvider {
@@ -24,6 +24,37 @@ public:
   [[nodiscard]] virtual double distance(std::size_t from_location,
                                         std::size_t to_location) const noexcept = 0;
   [[nodiscard]] virtual std::size_t size() const noexcept = 0;
+  [[nodiscard]] virtual const std::vector<double>* dense_row(
+      std::size_t from_location) const noexcept {
+    (void)from_location;
+    return nullptr;
+  }
+  [[nodiscard]] virtual const GridPairTable* grid_table() const noexcept { return nullptr; }
+};
+
+class DenseDistanceProvider final : public DistanceProvider {
+public:
+  explicit DenseDistanceProvider(std::vector<std::vector<double>> distances)
+      : distances_(std::move(distances)) {}
+
+  [[nodiscard]] double distance(std::size_t from_location,
+                                std::size_t to_location) const noexcept override {
+    return distances_[from_location][to_location];
+  }
+
+  [[nodiscard]] std::size_t size() const noexcept override { return distances_.size(); }
+
+  [[nodiscard]] const std::vector<double>* dense_row(
+      std::size_t from_location) const noexcept override {
+    return &distances_[from_location];
+  }
+
+  [[nodiscard]] const std::vector<std::vector<double>> &matrix() const noexcept {
+    return distances_;
+  }
+
+private:
+  std::vector<std::vector<double>> distances_;
 };
 
 class DenseGridDistanceProvider final : public DistanceProvider {
@@ -54,6 +85,11 @@ public:
 
   [[nodiscard]] std::size_t size() const noexcept override { return distances_.size(); }
 
+  [[nodiscard]] const std::vector<double>* dense_row(
+      std::size_t from_location) const noexcept override {
+    return &distances_[from_location];
+  }
+
   [[nodiscard]] const std::vector<std::vector<double>> &matrix() const noexcept {
     return distances_;
   }
@@ -65,7 +101,7 @@ private:
 class GridLutDistanceProvider final : public DistanceProvider {
 public:
   GridLutDistanceProvider(const std::vector<Spatial::Location> &locations, float cell_size)
-      : distances_(LocationPairTable::make_grid_distances(locations, cell_size)) {}
+      : distances_(GridPairTable::make_distances(locations, cell_size)) {}
 
   [[nodiscard]] double distance(std::size_t from_location,
                                 std::size_t to_location) const noexcept override {
@@ -76,10 +112,12 @@ public:
 
   [[nodiscard]] std::size_t memory_bytes() const noexcept { return distances_.memory_bytes(); }
 
-  [[nodiscard]] const LocationPairTable &table() const noexcept { return distances_; }
+  [[nodiscard]] const GridPairTable &table() const noexcept { return distances_; }
+
+  [[nodiscard]] const GridPairTable* grid_table() const noexcept override { return &distances_; }
 
 private:
-  LocationPairTable distances_;
+  GridPairTable distances_;
 };
 
 enum class GridDistanceBackend { Dense, Lut };

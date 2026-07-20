@@ -9,7 +9,7 @@
 
 #include <cmath>
 
-#include "Spatial/GIS/LocationPairTable.h"
+#include "Spatial/GIS/GridPairTable.h"
 #include "Spatial/SpatialModel.hxx"
 #include "Utils/Helpers/NumberHelpers.h"
 #include "Utils/TypeDef.h"
@@ -18,12 +18,12 @@ namespace Spatial {
 class WesolowskiSM : public SpatialModel {
 public:
   // Disallow copy
-  WesolowskiSM(const WesolowskiSM&) = delete;
-  WesolowskiSM& operator=(const WesolowskiSM&) = delete;
+  WesolowskiSM(const WesolowskiSM &) = delete;
+  WesolowskiSM &operator=(const WesolowskiSM &) = delete;
 
   // Disallow move
-  WesolowskiSM(WesolowskiSM&&) = delete;
-  WesolowskiSM& operator=(WesolowskiSM&&) = delete;
+  WesolowskiSM(WesolowskiSM &&) = delete;
+  WesolowskiSM &operator=(WesolowskiSM &&) = delete;
 
   double kappa_;
   double alpha_;
@@ -42,7 +42,7 @@ public:
   [[nodiscard]] double get_gamma() const { return gamma_; }
   void set_gamma(const double &value) {
     gamma_ = value;
-    distance_power_ = LocationPairTable{};
+    distance_power_ = GridPairTable{};
   }
 
   explicit WesolowskiSM(double kappa, double alpha, double beta, double gamma)
@@ -54,12 +54,13 @@ public:
 
   // Public API intentionally remains identical to 500054a in both build modes.
   [[nodiscard]] DoubleVector get_v_relative_out_movement_to_destination(
-      const int &from_location, const int &number_of_locations,
+      const int &from_location,
+      const int &number_of_locations,
       const DoubleVector &relative_distance_vector,
       const IntVector &v_number_of_residents_by_location) const override;
 
 private:
-  LocationPairTable distance_power_;
+  GridPairTable distance_power_;
 };
 }  // namespace Spatial
 
