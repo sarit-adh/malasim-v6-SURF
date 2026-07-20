@@ -409,7 +409,7 @@ public:
     // normalized
     double prob_sum = 0;
     for (auto &density : v_moving_level_density_) {
-      density = density + (1 - sum) / static_cast<double>(v_moving_level_density_.size());
+      density = density + ((1 - sum) / static_cast<double>(v_moving_level_density_.size()));
       prob_sum += density;
     }
 

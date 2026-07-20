@@ -15,7 +15,7 @@ Spatial::BurkinaFasoSM::BurkinaFasoSM(
 void Spatial::BurkinaFasoSM::prepare() {
   prepare_kernel();
   spdlog::info("Kernel prepared for BurkinaFasoSM, {} locations, {:.1f} MB", kernel_lut_.size(),
-               kernel_lut_.memory_bytes() / 1048576.0);
+               static_cast<double>(kernel_lut_.memory_bytes()) / 1048576.0);
 
   travel_.clear();
   if (Model::get_spatial_data() != nullptr) {
@@ -24,7 +24,7 @@ void Spatial::BurkinaFasoSM::prepare() {
     if (travel_raster == nullptr) {
       spdlog::warn("BurkinaFasoSM: travel raster not found, surface travel not prepared.");
     } else {
-      travel_ = std::move(prepare_surface(travel_raster, number_of_locations_));
+      travel_ = std::move(prepare_surface(travel_raster, static_cast<int>(number_of_locations_)));
       spdlog::info("BurkinaFasoSM: surface travel prepared, size: {}", travel_.size());
     }
   } else {

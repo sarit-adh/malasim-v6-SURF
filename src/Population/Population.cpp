@@ -607,21 +607,21 @@ void Population::clear_dead_people_at_location(const int location) {
   }
 }
 
-IntVector Population::prepare_circulation_context() const {
+IntVector Population::prepare_circulation_context() {
   return Model::get_mdc()->popsize_residence_by_location();
 }
 
 void Population::perform_circulation_from_location(const int from_location,
                                                    const IntVector &circulation_context) {
+  auto* config = Model::get_config();
+  auto &movement_settings = config->get_movement_settings();
+  auto &spatial_settings = config->get_spatial_settings();
+  auto* random = Model::get_random();
   PersonPtrVector today_circulations;
   auto poisson_means = static_cast<double>(size(from_location))
-                       * Model::get_config()
-                             ->get_movement_settings()
-                             .get_circulation_info()
-                             .get_circulation_percent();
+                       * movement_settings.get_circulation_info().get_circulation_percent();
   if (poisson_means == 0) { return; }
-  const auto number_of_circulating_from_this_location =
-      Model::get_random()->random_poisson(poisson_means);
+  const auto number_of_circulating_from_this_location = random->random_poisson(poisson_means);
   if (number_of_circulating_from_this_location == 0) { return; }
 
   // Location-based providers expose their existing dense row. Raster LUT
@@ -644,14 +644,13 @@ void Population::perform_circulation_from_location(const int from_location,
               relative_distance_vector, circulation_context);
 
   std::vector<unsigned int> v_num_leavers_to_destination(
-      static_cast<uint64_t>(Model::get_config()->number_of_locations()));
+      static_cast<uint64_t>(config->number_of_locations()));
 
-  Model::get_random()->random_multinomial(
-      static_cast<int>(v_relative_outmovement_to_destination.size()),
-      static_cast<unsigned int>(number_of_circulating_from_this_location),
-      v_relative_outmovement_to_destination, v_num_leavers_to_destination);
+  random->random_multinomial(static_cast<int>(v_relative_outmovement_to_destination.size()),
+                             static_cast<unsigned int>(number_of_circulating_from_this_location),
+                             v_relative_outmovement_to_destination, v_num_leavers_to_destination);
 
-  for (int target_location = 0; target_location < Model::get_config()->number_of_locations();
+  for (int target_location = 0; target_location < config->number_of_locations();
        target_location++) {
     // spdlog::info("target_location individual_relative_moving_by_location[{}] size: {} sum:
     // {}",target_location,
@@ -773,9 +772,13 @@ void Population::append_daily_sampling_state(const int location, Person* person)
 
 void Population::remove_from_daily_sampling_state(const int location, Person* person) {
   auto &alive_people = all_alive_persons_by_location_[location];
-  const auto person_it = std::find(alive_people.begin(), alive_people.end(), person);
+  const auto person_it = std::ranges::find(alive_people, person);
   if (person_it == alive_people.end()) { return; }
-  const auto index = static_cast<std::size_t>(std::distance(alive_people.begin(), person_it));
+  // Iterator distances use the container's signed difference_type.
+  const auto offset = std::distance(alive_people.begin(), person_it);
+
+  // Safe because person_it is in [begin(), end()).
+  const auto index = static_cast<std::size_t>(offset);
 
   current_force_of_infection_by_location_[location] -= individual_foi_by_location_[location][index];
   sum_relative_biting_by_location_[location] -=
@@ -783,11 +786,11 @@ void Population::remove_from_daily_sampling_state(const int location, Person* pe
   sum_relative_moving_by_location_[location] -=
       individual_relative_moving_by_location_[location][index];
   individual_foi_by_location_[location].erase(individual_foi_by_location_[location].begin()
-                                              + index);
+                                              + offset);
   individual_relative_biting_by_location_[location].erase(
-      individual_relative_biting_by_location_[location].begin() + index);
+      individual_relative_biting_by_location_[location].begin() + offset);
   individual_relative_moving_by_location_[location].erase(
-      individual_relative_moving_by_location_[location].begin() + index);
+      individual_relative_moving_by_location_[location].begin() + offset);
   alive_people.erase(person_it);
 }
 

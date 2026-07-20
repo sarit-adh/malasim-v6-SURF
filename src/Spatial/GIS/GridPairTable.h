@@ -74,6 +74,9 @@ public:
 
   GridPairTable() = default;
 
+  // Disallow binding to temporaries: GridPairTable stores a non-owning pointer to locations.
+  static GridPairTable make_distances(const std::vector<Spatial::Location> &&, float) = delete;
+
   static GridPairTable make_distances(const std::vector<Spatial::Location> &locations,
                                       float cell_size) {
     GridPairTable table;

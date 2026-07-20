@@ -286,6 +286,17 @@ TEST_F(ModelDataCollectorTest, UpdatePersonDays) {
     EXPECT_EQ(mdc_->person_days_by_location_year()[location], 60);
 }
 
+TEST_F(ModelDataCollectorTest, UpdatePersonDaysRejectsInvalidLocation) {
+    setupInitialState();
+
+    const auto invalid_location =
+        static_cast<core::LocationId>(mdc_->person_days_by_location_year().size());
+
+    EXPECT_THROW(mdc_->update_person_days_by_years(invalid_location, 30), std::out_of_range);
+    EXPECT_THROW(
+        mdc_->update_person_days_by_years(core::K_INVALID_LOCATION_ID, 30), std::out_of_range);
+}
+
 // Test collect_number_of_bites function
 TEST_F(ModelDataCollectorTest, CollectNumberOfBites) {
     setupInitialState();

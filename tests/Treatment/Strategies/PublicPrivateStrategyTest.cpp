@@ -184,7 +184,9 @@ TEST_F(PublicPrivateStrategyTest, MultiLocationStrategyUsesLocationSpecificShare
   EXPECT_NEAR(strategy.public_share_by_location[0], 0.4, 1e-12);
   EXPECT_NEAR(strategy.public_share_by_location[1], 0.6, 1e-12);
 
-  person_1_->set_location(2);
+  // Keep the person's location valid for the model while making it invalid for
+  // this strategy's now-smaller location-share table.
+  strategy.public_share_by_location.resize(1);
   EXPECT_THROW((void)strategy.select_treatment(person_1_.get()), std::out_of_range);
 }
 

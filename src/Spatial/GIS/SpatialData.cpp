@@ -158,7 +158,7 @@ void SpatialData::generate_distances() const {
   auto provider = make_grid_distance_provider(db, cell_size_);
   const auto locations = provider->size();
 
-  if (GRID_DISTANCE_BACKEND == GridDistanceBackend::Lut) {
+  if (GRID_DISTANCE_BACKEND == GridDistanceBackend::LUT) {
     const auto* lut = dynamic_cast<const GridLutDistanceProvider*>(provider.get());
     if (lut == nullptr) {
       throw std::logic_error(

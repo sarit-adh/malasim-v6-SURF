@@ -292,7 +292,7 @@ void Model::end_time_step() {
 
 void Model::daily_update() {
   const auto tracking_index = scheduler_->current_time() % config_->number_of_tracking_days();
-  const auto circulation_context = population_->prepare_circulation_context();
+  const auto circulation_context = Population::prepare_circulation_context();
 
   for (int location = 0; location < config_->number_of_locations(); ++location) {
     population_->prepare_daily_state_at_location(location);

@@ -94,7 +94,7 @@ public:
 
   void clear_dead_people_at_location(int location);
 
-  [[nodiscard]] IntVector prepare_circulation_context() const;
+  [[nodiscard]] static IntVector prepare_circulation_context();
 
   void perform_circulation_from_location(int from_location, const IntVector &circulation_context);
 

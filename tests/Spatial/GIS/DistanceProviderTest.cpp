@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -73,7 +74,7 @@ TEST(DistanceProviderTest, HardCodedRasterBackendSelectsLut) {
   const auto locations = make_locations({{0, 0}, {1, 1}});
   auto provider = make_grid_distance_provider(locations, 5.0F);
 
-  EXPECT_EQ(GRID_DISTANCE_BACKEND, GridDistanceBackend::Lut);
+  EXPECT_EQ(GRID_DISTANCE_BACKEND, GridDistanceBackend::LUT);
   EXPECT_NE(dynamic_cast<GridLutDistanceProvider*>(provider.get()), nullptr);
 }
 

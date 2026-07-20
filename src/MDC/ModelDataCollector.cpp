@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <stdexcept>
 
 #include "Configuration/Config.h"
 #include "Core/Scheduler/Scheduler.h"
@@ -842,6 +843,11 @@ void ModelDataCollector::yearly_update() {
 }
 void ModelDataCollector::update_person_days_by_years(const core::LocationId &location,
                                                      const int &days) {
+  if (location == core::K_INVALID_LOCATION_ID
+      || location >= person_days_by_location_year_.size()) {
+    throw std::out_of_range("Location is outside person-days range");
+  }
+
   // v5 behaviour: only accumulate person-days once we start collecting
   if (Model::get_scheduler()->current_time()
       >= Model::get_config()->get_simulation_timeframe().get_start_collect_data_day()) {

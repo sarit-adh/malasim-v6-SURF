@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <utility>
@@ -19,6 +20,10 @@
 
 class DistanceProvider {
 public:
+  DistanceProvider(const DistanceProvider &) = default;
+  DistanceProvider(DistanceProvider &&) = delete;
+  DistanceProvider &operator=(const DistanceProvider &) = default;
+  DistanceProvider &operator=(DistanceProvider &&) = delete;
   virtual ~DistanceProvider() = default;
 
   [[nodiscard]] virtual double distance(std::size_t from_location,
@@ -30,6 +35,9 @@ public:
     return nullptr;
   }
   [[nodiscard]] virtual const GridPairTable* grid_table() const noexcept { return nullptr; }
+
+protected:
+  DistanceProvider() = default;
 };
 
 class DenseDistanceProvider final : public DistanceProvider {
@@ -105,7 +113,7 @@ public:
 
   [[nodiscard]] double distance(std::size_t from_location,
                                 std::size_t to_location) const noexcept override {
-    return distances_.at(static_cast<int>(from_location), static_cast<int>(to_location));
+    return distances_.at(from_location, to_location);
   }
 
   [[nodiscard]] std::size_t size() const noexcept override { return distances_.size(); }
@@ -120,20 +128,20 @@ private:
   GridPairTable distances_;
 };
 
-enum class GridDistanceBackend { Dense, Lut };
+enum class GridDistanceBackend : std::uint8_t { DENSE, LUT };
 
 // Raster distance selection is intentionally a source-level decision while the
 // two implementations are being verified. It is not a build or YAML option.
-inline constexpr GridDistanceBackend GRID_DISTANCE_BACKEND = GridDistanceBackend::Lut;
+inline constexpr GridDistanceBackend GRID_DISTANCE_BACKEND = GridDistanceBackend::LUT;
 
 [[nodiscard]] inline std::unique_ptr<DistanceProvider> make_grid_distance_provider(
     const std::vector<Spatial::Location> &locations,
     float cell_size,
     GridDistanceBackend backend = GRID_DISTANCE_BACKEND) {
   switch (backend) {
-    case GridDistanceBackend::Dense:
+    case GridDistanceBackend::DENSE:
       return std::make_unique<DenseGridDistanceProvider>(locations, cell_size);
-    case GridDistanceBackend::Lut:
+    case GridDistanceBackend::LUT:
       return std::make_unique<GridLutDistanceProvider>(locations, cell_size);
   }
   throw std::logic_error("Unknown raster-grid distance backend");
