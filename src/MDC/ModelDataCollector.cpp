@@ -809,9 +809,44 @@ void ModelDataCollector::yearly_update() {
   } else {
     // Subsequent years: compute EIR and reset yearly counters
     for (auto loc = 0; loc < Model::get_config()->number_of_locations(); ++loc) {
-      auto eir = (static_cast<double>(total_number_of_bites_by_location_year_[loc])
-                  / static_cast<double>(person_days_by_location_year_[loc]))
-                 * Constants::DAYS_IN_YEAR;
+        const auto bites =
+        total_number_of_bites_by_location_year_[loc];
+
+        const auto person_days =
+            person_days_by_location_year_[loc];
+
+        double eir = 0.0;
+
+        if (person_days > 0) {
+            eir =
+                (static_cast<double>(bites)
+                 / static_cast<double>(person_days))
+                * Constants::DAYS_IN_YEAR;
+        } else {
+            spdlog::warn(
+                "ModelDataCollector::yearly_update: zero or negative "
+                "person-days at day={}, location={}, population={}, "
+                "bites={}, person_days={}; yearly EIR set to 0.",
+                current_time,
+                loc,
+                Model::get_population()->size_at(loc),
+                bites,
+                person_days);
+        }
+        if (!std::isfinite(eir)) {
+            spdlog::warn(
+                "ModelDataCollector::yearly_update: non-finite EIR "
+                "at day={}, location={}, population={}, bites={}, "
+                "person_days={}, eir={}; yearly EIR set to 0.",
+                current_time,
+                loc,
+                Model::get_population()->size_at(loc),
+                bites,
+                person_days,
+                eir);
+
+            eir = 0.0;
+        }
 
       // v5: always push yearly EIR (the “only record year have positive EIR”
       // line was commented out there as well)
